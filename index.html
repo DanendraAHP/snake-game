@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Serpent Rogue</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+
+    <!-- In-game HUD -->
+    <div id="hud" class="hidden">
+      <div class="hud-top-left panel">
+        <div class="level-row">
+          <span class="level-badge">LV <b id="hud-level">1</b></span>
+          <div class="xp-bar"><div id="hud-xp"></div></div>
+        </div>
+        <div class="stat-row">
+          <span>📏 <b id="hud-length">0</b></span>
+          <span>💀 <b id="hud-kills">0</b></span>
+          <span>⏱️ <b id="hud-time">0:00</b></span>
+          <span id="hud-shields"></span>
+        </div>
+      </div>
+      <div class="hud-top-right panel">
+        <div class="panel-title">Leaderboard</div>
+        <ol id="leaderboard"></ol>
+      </div>
+      <canvas id="minimap" width="170" height="170"></canvas>
+      <div id="hud-upgrades"></div>
+      <div class="hud-hint">Mouse to steer · Hold click / Space to boost · Esc to pause</div>
+    </div>
+    <div id="toasts"></div>
+
+    <!-- Main menu -->
+    <div id="menu" class="screen">
+      <div class="menu-card">
+        <h1>SERPENT <span>ROGUE</span></h1>
+        <p class="tagline">Eat. Grow. Level up. Choose your power. Outlast the bots.</p>
+        <div class="menu-buttons">
+          <button id="btn-play" class="btn big">▶ Play</button>
+          <button id="btn-skin" class="btn">🎨 Customize Snake</button>
+          <button id="btn-howto" class="btn">❓ How to Play</button>
+        </div>
+        <div id="best" class="best"></div>
+      </div>
+    </div>
+
+    <!-- Skin editor -->
+    <div id="skin-screen" class="screen hidden">
+      <div class="skin-layout">
+        <div class="skin-preview"><canvas id="preview"></canvas></div>
+        <div class="skin-controls panel">
+          <h2>Customize your snake</h2>
+          <label>Name <input id="skin-name" maxlength="14" /></label>
+          <div class="field"><span>Pattern</span><div id="opt-pattern" class="options"></div></div>
+          <div class="field colors">
+            <label>Main color <input type="color" id="skin-colorA" /></label>
+            <label>Second color <input type="color" id="skin-colorB" /></label>
+          </div>
+          <div class="field"><span>Eyes</span><div id="opt-eyes" class="options"></div></div>
+          <div class="field"><span>Hat</span><div id="opt-hat" class="options"></div></div>
+          <label class="check"><input type="checkbox" id="skin-glow" /> Glow</label>
+          <div class="row">
+            <button id="btn-random" class="btn">🎲 Randomize</button>
+            <button id="btn-skin-save" class="btn big">✔ Save &amp; Back</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How to play -->
+    <div id="howto" class="screen hidden">
+      <div class="menu-card panel howto">
+        <h2>How to play</h2>
+        <ul>
+          <li>🖱️ Your snake follows the <b>mouse</b>. Or use <b>A / D</b> (arrow keys) to turn.</li>
+          <li>🚀 Hold <b>left click</b> or <b>Space</b> to boost. Boosting burns length.</li>
+          <li>🍬 Eat glowing orbs to grow and earn <b>XP</b>. Golden orbs are worth 5x.</li>
+          <li>💥 If your <b>head</b> touches another snake's body, you die. Your own body is safe.</li>
+          <li>🎯 Make bots crash into <b>your</b> body and eat what they drop.</li>
+          <li>⬆️ Every level up, <b>pick 1 of 3 power-ups</b>. Stack them to build a run.</li>
+          <li>☠️ Bots get bigger and meaner over time. How long can you last?</li>
+        </ul>
+        <button class="btn btn-back">← Back</button>
+      </div>
+    </div>
+
+    <!-- Level up -->
+    <div id="levelup" class="screen hidden">
+      <div class="levelup-inner">
+        <h2>LEVEL <span id="lu-level">2</span>!</h2>
+        <p>Choose a power-up (keys 1 / 2 / 3)</p>
+        <div id="lu-cards" class="cards"></div>
+        <button id="btn-reroll" class="btn">🎲 Reroll (<span id="lu-rerolls">0</span>) · R</button>
+      </div>
+    </div>
+
+    <!-- Pause -->
+    <div id="pause" class="screen hidden">
+      <div class="menu-card panel">
+        <h2>Paused</h2>
+        <div class="menu-buttons">
+          <button id="btn-resume" class="btn big">▶ Resume</button>
+          <button id="btn-quit" class="btn">🏠 Quit to menu</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game over -->
+    <div id="gameover" class="screen hidden">
+      <div class="menu-card panel">
+        <h2>You were eaten!</h2>
+        <div id="go-stats" class="go-stats"></div>
+        <div id="go-upgrades" class="go-upgrades"></div>
+        <div class="menu-buttons">
+          <button id="btn-again" class="btn big">↻ Play again</button>
+          <button id="btn-menu" class="btn">🏠 Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

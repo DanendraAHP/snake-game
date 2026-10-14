@@ -1,0 +1,19 @@
+{
+  "name": "serpent-rogue",
+  "version": "0.1.0",
+  "description": "Offline 3D snake roguelite: customize your snake, fight bots, pick power-ups on level up.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "start": "vite --open",
+    "build": "vite build",
+    "preview": "vite preview --open"
+  },
+  "dependencies": {
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "vite": "7.3.7"
+  }
+}
