@@ -9,6 +9,7 @@
   --common: #9aa5d6;
   --rare: #4fa9ff;
   --epic: #c76bff;
+  --legend: #ffb020;
 }
 
 * { box-sizing: border-box; }
@@ -84,29 +85,56 @@ html, body {
 
 .howto ul { text-align: left; line-height: 1.8; padding-left: 8px; list-style: none; }
 
-/* ---------- Skin editor ---------- */
-#skin-screen { background: rgba(5, 8, 20, 0.6); }
-.skin-layout { display: flex; gap: 16px; width: min(1100px, 100%); height: min(640px, 100%); }
-.skin-preview { flex: 1.3; min-width: 0; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); }
-.skin-preview canvas { width: 100%; height: 100%; display: block; }
-.skin-controls { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-.skin-controls h2 { margin: 0 0 4px; }
-.skin-controls label { display: flex; align-items: center; gap: 10px; color: var(--muted); }
-.skin-controls input[type='text'], .skin-controls #skin-name {
-  font: inherit; color: var(--text); background: #1a2147; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; flex: 1;
+/* ---------- Skin shop ---------- */
+#skin-screen { background: radial-gradient(circle at 30% 40%, #3d7fe0 0%, #1b3c86 45%, #0b1020 100%); padding: 0; }
+.shop { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 16px; gap: 12px; }
+.shop-top { display: flex; align-items: center; gap: 16px; }
+.shop-top h2 { flex: 1; margin: 0; font-size: 30px; letter-spacing: 2px; font-weight: 900; color: #fff; text-shadow: 0 3px 0 #b0167a, 0 0 18px rgba(255, 60, 200, 0.6); }
+.coins { background: rgba(0, 0, 0, 0.35); padding: 8px 16px; border-radius: 20px; font-size: 18px; }
+.shop-body { flex: 1; display: flex; gap: 16px; min-height: 0; }
+.shop-stage { flex: 1.2; position: relative; min-width: 0; }
+.shop-stage canvas { width: 100%; height: 100%; display: block; }
+.stage-info { position: absolute; left: 0; right: 0; bottom: 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.sel-name { font-size: 28px; font-weight: 900; text-shadow: 0 3px 0 #0a0a12; }
+.rarity-tag { font-size: 13px; text-transform: uppercase; letter-spacing: 2px; padding: 2px 10px; border-radius: 6px; background: var(--c, var(--common)); color: #0a0a12; font-weight: bold; }
+.shop-side { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; background: rgba(20, 40, 110, 0.85); }
+.tabs { display: flex; gap: 4px; padding: 10px 10px 0; flex-wrap: wrap; }
+.tabs button {
+  flex: 1; font: inherit; font-weight: 900; font-size: 15px; letter-spacing: 1px; color: #b8c8ff; cursor: pointer;
+  background: #1d3a8a; border: none; border-radius: 10px 10px 0 0; padding: 10px 6px;
 }
-.skin-controls input[type='color'] { width: 48px; height: 32px; border: none; background: none; cursor: pointer; }
-.field > span { color: var(--muted); display: block; margin-bottom: 6px; }
-.field.colors { display: flex; gap: 20px; flex-wrap: wrap; }
+.tabs button.active { background: #2f64e0; color: #fff; }
+.tabs button.custom { background: linear-gradient(180deg, #b0167a, #6d0f6b); color: #ffd25d; }
+.shop-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 14px; background: #2f64e0; align-content: start; }
+.skin-card {
+  position: relative; font: inherit; color: var(--text); cursor: pointer; padding: 6px 6px 8px; border-radius: 14px;
+  background: linear-gradient(180deg, #8fdcff, #3fa6e8); border: 3px solid #1a4fb8; box-shadow: 0 4px 0 #173f91;
+  display: flex; flex-direction: column; align-items: center; transition: transform 0.08s;
+}
+.skin-card:hover { transform: translateY(-2px); }
+.skin-card.selected { border-color: #ffd25d; box-shadow: 0 0 0 3px #ffd25d, 0 4px 0 #173f91; }
+.skin-card img { width: 100%; aspect-ratio: 1.4; object-fit: contain; }
+.skin-card .card-name { font-size: 14px; font-weight: bold; color: #0d2a6b; }
+.skin-card .card-price { font-size: 13px; color: #0d2a6b; }
+.skin-card.locked img { filter: saturate(0.85) brightness(0.92); }
+.skin-card .badge { position: absolute; top: 6px; right: 8px; font-size: 16px; }
+.custom-editor { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: #2f64e0; }
+.custom-editor label { display: flex; align-items: center; gap: 8px; color: #dce6ff; }
+.custom-editor input[type='color'] { width: 44px; height: 30px; border: none; background: none; cursor: pointer; }
+.field > span { color: #dce6ff; display: block; margin-bottom: 6px; }
+.field.colors { display: flex; gap: 14px; flex-wrap: wrap; }
 .options { display: flex; flex-wrap: wrap; gap: 6px; }
-.options button { font: inherit; font-size: 14px; color: var(--text); background: #1a2147; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
-.options button.active { background: var(--accent); color: #052012; border-color: var(--accent); font-weight: bold; }
+.options button { font: inherit; font-size: 14px; color: var(--text); background: #1d3a8a; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.options button.active { background: var(--gold); color: #3a2800; border-color: var(--gold); font-weight: bold; }
 .check { cursor: pointer; }
-.row { display: flex; gap: 10px; margin-top: auto; flex-wrap: wrap; }
+.name-row { display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--muted); margin-top: 14px; }
+.name-row input { font: inherit; color: var(--text); background: #1a2147; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; width: 180px; text-align: center; }
+.menu-coins { margin-left: 8px; font-size: 14px; color: var(--gold); }
+.go-coins { margin-top: 14px; font-size: 20px; color: var(--gold); font-weight: bold; }
 
-@media (max-width: 760px) {
-  .skin-layout { flex-direction: column; }
-  .skin-preview { flex: none; height: 240px; }
+@media (max-width: 800px) {
+  .shop-body { flex-direction: column; }
+  .shop-stage { flex: none; height: 260px; }
 }
 
 /* ---------- HUD ---------- */
@@ -157,6 +185,11 @@ html, body {
 .card.common { --c: var(--common); }
 .card.rare { --c: var(--rare); }
 .card.epic { --c: var(--epic); }
+.r-common { --c: var(--common); }
+.r-rare { --c: var(--rare); }
+.r-epic { --c: var(--epic); }
+.r-legend { --c: var(--legend); }
+.r-custom { --c: #ff6bd0; }
 .card .icon { font-size: 44px; }
 .card .name { font-size: 19px; font-weight: bold; margin: 6px 0; }
 .card .rarity { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--c); }

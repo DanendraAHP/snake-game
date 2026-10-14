@@ -11,10 +11,10 @@ export function wrapAngle(a) {
 
 // Snake = game rules (movement, growth, timers). Drawing is done by SnakeModel.
 export class Snake {
-  constructor(game, { skin, x = 0, z = 0, angle = 0, mass = CONFIG.startMass, isPlayer = false }) {
+  constructor(game, { skin, name = 'Snake', x = 0, z = 0, angle = 0, mass = CONFIG.startMass, isPlayer = false }) {
     this.game = game;
     this.skin = skin;
-    this.name = skin.name || 'Snake';
+    this.name = name;
     this.isPlayer = isPlayer;
     this.angle = angle;
     this.targetAngle = angle;
@@ -31,6 +31,7 @@ export class Snake {
     this.phase = 0; // seconds of "pass through snakes"
     this.phantomCooldown = 0;
     this.freeBoost = 0;
+    this.chomp = 0; // jaw animation timer
 
     this.wantBoost = false;
     this.boosting = false;
@@ -43,7 +44,7 @@ export class Snake {
       this.addSegment(x - Math.cos(angle) * i * this.spacing, z - Math.sin(angle) * i * this.spacing);
     }
 
-    this.model = new SnakeModel(skin);
+    this.model = new SnakeModel(skin, { label: true });
     game.scene.add(this.model.group);
   }
 
@@ -67,6 +68,7 @@ export class Snake {
   }
 
   grow(amount) {
+    if (amount > 0 && this.chomp <= 0) this.chomp = 0.22;
     this.mass += amount;
     this.maxMass = Math.max(this.maxMass, this.mass);
   }
@@ -79,7 +81,8 @@ export class Snake {
     this.phase = Math.max(0, this.phase - dt);
     this.phantomCooldown = Math.max(0, this.phantomCooldown - dt);
     this.freeBoost = Math.max(0, this.freeBoost - dt);
-    if (st.regen) this.grow(st.regen * dt);
+    this.chomp = Math.max(0, this.chomp - dt);
+    if (st.regen) this.mass += st.regen * dt;
     if (this.shields < st.shieldMax) {
       this.shieldTimer += dt;
       if (this.shieldTimer >= st.shieldRecharge) {
@@ -144,7 +147,11 @@ export class Snake {
   }
 
   render(time) {
+    const chomp = this.chomp > 0 ? Math.sin((this.chomp / 0.22) * Math.PI) : 0;
     this.model.update(this.segments, this.radius, this.angle, time, {
+      jaw: Math.max(chomp, this.boosting ? 0.45 : 0.05),
+      label: `Lv${Math.floor(this.mass)}\n${this.name}`,
+      labelColor: this.isPlayer ? '#ffe066' : '#ffffff',
       boosting: this.boosting,
       phase: this.phase > 0,
       invuln: this.invuln > 0,

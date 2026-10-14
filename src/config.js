@@ -14,7 +14,7 @@ export const CONFIG = {
   startMass: 14,
   massPerFood: 0.6, // how much a food of value 1 makes you grow
   maxSegments: 600,
-  baseRadius: 0.6,
+  baseRadius: 0.72,
 
   baseMagnet: 1.2, // every snake slightly attracts nearby food
   deathDropRatio: 0.8, // how much of a dead snake's mass turns into food

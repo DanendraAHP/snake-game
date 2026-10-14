@@ -5,7 +5,7 @@ import { BotBrain } from './bot.js';
 import { FoodField } from './food.js';
 import { SpatialHash } from './grid.js';
 import { Particles } from './particles.js';
-import { randomSkin, segmentColor } from './skins.js';
+import { randomBotSkin, randomBotName, segmentColor } from './skins.js';
 import { rollChoices, applyUpgrade } from './upgrades.js';
 
 const tmpColor = new THREE.Color();
@@ -167,10 +167,10 @@ export class Game {
     for (let i = 0; i < CONFIG.botCount; i++) this.spawnBot();
   }
 
-  startRun(skin) {
+  startRun(skin, name = 'Player') {
     this.clearWorld();
     this.state = 'playing';
-    const p = new Snake(this, { skin, x: 0, z: 0, angle: Math.random() * Math.PI * 2, isPlayer: true });
+    const p = new Snake(this, { skin, name, x: 0, z: 0, angle: Math.random() * Math.PI * 2, isPlayer: true });
     p.level = 1;
     p.xp = 0;
     p.xpNext = xpForLevel(1);
@@ -195,7 +195,7 @@ export class Game {
     }
     // Bots spawn bigger as the run goes on: the "threat" ramps up.
     const mass = CONFIG.startMass + Math.random() * 25 * this.threat + (this.threat - 1) * 30;
-    const bot = new Snake(this, { skin: randomSkin(), x, z, angle: Math.random() * Math.PI * 2, mass });
+    const bot = new Snake(this, { skin: randomBotSkin(), name: randomBotName(), x, z, angle: Math.random() * Math.PI * 2, mass });
     bot.brain = new BotBrain(bot, this);
     bot.invuln = 1;
     this.snakes.push(bot);
@@ -305,7 +305,9 @@ export class Game {
   }
 
   collide(s) {
-    const h = s.head;
+    // The 3D head sticks out in front of the first segment, so test a bit ahead.
+    const seg0 = s.segments[0];
+    const h = { x: seg0.x + Math.cos(s.angle) * s.radius * 0.9, z: seg0.z + Math.sin(s.angle) * s.radius * 0.9 };
     const hr = s.radius * 0.9;
     const R = CONFIG.arenaRadius;
     const safe = s.invuln > 0 || s.phase > 0;
@@ -314,9 +316,9 @@ export class Game {
     const dc = Math.hypot(h.x, h.z);
     if (dc + hr > R) {
       if (safe) {
-        h.x *= (R - hr - 0.1) / dc;
-        h.z *= (R - hr - 0.1) / dc;
-        s.angle = s.targetAngle = Math.atan2(-h.z, -h.x);
+        seg0.x *= (R - hr - s.radius - 0.1) / dc;
+        seg0.z *= (R - hr - s.radius - 0.1) / dc;
+        s.angle = s.targetAngle = Math.atan2(-seg0.z, -seg0.x);
       } else {
         this.hit(s, null);
       }
@@ -442,13 +444,17 @@ export class Game {
   gameOver() {
     const p = this.player;
     this.state = 'over';
-    this.ui.showGameOver({
+    const stats = {
       level: p.level,
       length: Math.floor(p.maxMass),
       kills: p.kills,
       time: this.runTime,
       upgrades: p.upgrades,
-    });
+    };
+    // Coins for the skin shop: bigger, longer, deadlier runs earn more.
+    stats.coins = Math.round(p.maxMass / 4 + p.kills * 15 + p.level * 10 + this.runTime / 6);
+    this.onGameOver?.(stats);
+    this.ui.showGameOver(stats);
   }
 
   // ------------------------------------------------------------------ camera
@@ -459,7 +465,7 @@ export class Game {
     if (this.state === 'playing' && p?.alive) {
       const h = p.head;
       this.camTarget.lerp(tmpVec.set(h.x, 0, h.z), Math.min(1, k * 2));
-      const height = (20 + p.radius * 13) * p.stats.zoomMul;
+      const height = (15 + p.radius * 12) * p.stats.zoomMul;
       desired.set(this.camTarget.x, height, this.camTarget.z + height * 0.62);
     } else {
       // Slow orbit for the menu / game over screen.

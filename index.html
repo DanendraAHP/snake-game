@@ -13,7 +13,7 @@
     <div id="hud" class="hidden">
       <div class="hud-top-left panel">
         <div class="level-row">
-          <span class="level-badge">LV <b id="hud-level">1</b></span>
+          <span class="level-badge" title="Power level: level up to pick upgrades">★ <b id="hud-level">1</b></span>
           <div class="xp-bar"><div id="hud-xp"></div></div>
         </div>
         <div class="stat-row">
@@ -38,33 +38,47 @@
       <div class="menu-card">
         <h1>SERPENT <span>ROGUE</span></h1>
         <p class="tagline">Eat. Grow. Level up. Choose your power. Outlast the bots.</p>
+        <label class="name-row">Your name <input id="player-name" maxlength="14" /></label>
         <div class="menu-buttons">
           <button id="btn-play" class="btn big">▶ Play</button>
-          <button id="btn-skin" class="btn">🎨 Customize Snake</button>
+          <button id="btn-skin" class="btn">🐉 Skins <span class="menu-coins">🪙 <b class="coin-count">0</b></span></button>
           <button id="btn-howto" class="btn">❓ How to Play</button>
         </div>
         <div id="best" class="best"></div>
       </div>
     </div>
 
-    <!-- Skin editor -->
+    <!-- Skin shop -->
     <div id="skin-screen" class="screen hidden">
-      <div class="skin-layout">
-        <div class="skin-preview"><canvas id="preview"></canvas></div>
-        <div class="skin-controls panel">
-          <h2>Customize your snake</h2>
-          <label>Name <input id="skin-name" maxlength="14" /></label>
-          <div class="field"><span>Pattern</span><div id="opt-pattern" class="options"></div></div>
-          <div class="field colors">
-            <label>Main color <input type="color" id="skin-colorA" /></label>
-            <label>Second color <input type="color" id="skin-colorB" /></label>
+      <div class="shop">
+        <div class="shop-top">
+          <button class="btn btn-back">← Back</button>
+          <h2>COLLECT SKINS</h2>
+          <div class="coins">🪙 <b class="coin-count">0</b></div>
+        </div>
+        <div class="shop-body">
+          <div class="shop-stage">
+            <canvas id="preview"></canvas>
+            <div class="stage-info">
+              <div id="sel-rarity" class="rarity-tag"></div>
+              <div id="sel-name" class="sel-name"></div>
+              <button id="btn-equip" class="btn big">Equip</button>
+            </div>
           </div>
-          <div class="field"><span>Eyes</span><div id="opt-eyes" class="options"></div></div>
-          <div class="field"><span>Hat</span><div id="opt-hat" class="options"></div></div>
-          <label class="check"><input type="checkbox" id="skin-glow" /> Glow</label>
-          <div class="row">
-            <button id="btn-random" class="btn">🎲 Randomize</button>
-            <button id="btn-skin-save" class="btn big">✔ Save &amp; Back</button>
+          <div class="shop-side panel">
+            <div id="shop-tabs" class="tabs"></div>
+            <div id="shop-grid" class="shop-grid"></div>
+            <div id="custom-editor" class="custom-editor hidden">
+              <div id="custom-fields"></div>
+              <div class="field colors">
+                <label>Main <input type="color" id="c-colorA" /></label>
+                <label>Second <input type="color" id="c-colorB" /></label>
+                <label>Accent <input type="color" id="c-colorC" /></label>
+                <label>Eyes <input type="color" id="c-eyeColor" /></label>
+              </div>
+              <label class="check"><input type="checkbox" id="c-glow" /> Glow</label>
+              <button id="btn-random" class="btn">🎲 Randomize</button>
+            </div>
           </div>
         </div>
       </div>
@@ -82,6 +96,7 @@
           <li>🎯 Make bots crash into <b>your</b> body and eat what they drop.</li>
           <li>⬆️ Every level up, <b>pick 1 of 3 power-ups</b>. Stack them to build a run.</li>
           <li>☠️ Bots get bigger and meaner over time. How long can you last?</li>
+          <li>🪙 Every run earns coins. Spend them on new skins in the 🐉 Skins shop.</li>
         </ul>
         <button class="btn btn-back">← Back</button>
       </div>
@@ -90,7 +105,7 @@
     <!-- Level up -->
     <div id="levelup" class="screen hidden">
       <div class="levelup-inner">
-        <h2>LEVEL <span id="lu-level">2</span>!</h2>
+        <h2>POWER UP! ★<span id="lu-level">2</span></h2>
         <p>Choose a power-up (keys 1 / 2 / 3)</p>
         <div id="lu-cards" class="cards"></div>
         <button id="btn-reroll" class="btn">🎲 Reroll (<span id="lu-rerolls">0</span>) · R</button>
@@ -114,6 +129,7 @@
         <h2>You were eaten!</h2>
         <div id="go-stats" class="go-stats"></div>
         <div id="go-upgrades" class="go-upgrades"></div>
+        <div id="go-coins" class="go-coins"></div>
         <div class="menu-buttons">
           <button id="btn-again" class="btn big">↻ Play again</button>
           <button id="btn-menu" class="btn">🏠 Menu</button>

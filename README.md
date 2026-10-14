@@ -1,7 +1,12 @@
 # 🐍 Serpent Rogue
 
-An offline 3D snake game (like slither.io / snake.io) with **custom skins**, **AI bots**, and
+An offline 3D snake game (like slither.io / Snake Clash) with **collectible dragon skins**, **AI bots**, and
 **roguelite power-ups**: every time you level up by eating, you pick 1 of 3 upgrades.
+
+- 🐉 Cartoon 3D snakes: dragon / viper / cute heads with chomping jaws and teeth, scale plates,
+  spikes or flame fins, black outlines and toon shading.
+- 🛒 Skin shop with **Common / Rare / Epic / Legend** skins (Fire Dragon, Anubis, Void Leviathan...),
+  bought with coins you earn at the end of each run, plus a **Custom** tab to design your own.
 
 Built with plain JavaScript + [Three.js](https://threejs.org/) (3D) + [Vite](https://vitejs.dev/) (dev server).
 No internet needed once installed.
@@ -38,14 +43,16 @@ Each file does one job. Read them in this order:
 | `src/main.js` | Entry point: creates the game, wires up menu buttons and the skin editor. |
 | `src/game.js` | The heart: the 3D scene and the **game loop** (input → AI → move → eat → collide → die → draw). |
 | `src/snake.js` | Snake rules: steering, boosting, following body segments, growing. |
-| `src/model.js` | Draws a snake in 3D (one `InstancedMesh` = hundreds of spheres in a single draw call). |
-| `src/skins.js` | Skin data (colors, pattern, eyes, hat) and how it becomes 3D meshes. Saved in `localStorage`. |
+| `src/model.js` | Draws a snake: body plates + back spikes as `InstancedMesh`es (hundreds of copies in one draw call), head, "Lv" label. |
+| `src/skins.js` | Skin options, the shop **catalog** (rarity + price), body color patterns, your saved profile (coins, owned skins). |
+| `src/heads.js` | Builds the 3D heads (dragon, viper, cute) and hats out of simple shapes, with a jaw that opens. |
+| `src/toon.js` | The cartoon look: toon materials + "inverted hull" outlines + merging parts into few meshes. |
 | `src/bot.js` | Bot AI: pick a goal (food / hunt / wander), probe ahead for danger, steer. |
 | `src/upgrades.js` | The roguelite power-up list and weighted random picking by rarity. |
 | `src/food.js` | Food orbs: spawning, eating, drawing. |
 | `src/grid.js` | Spatial hash: only test collisions with *nearby* things (keeps it fast). |
 | `src/ui.js` | HUD, leaderboard, minimap, level-up cards, game over (plain HTML/CSS). |
-| `src/preview.js` | The rotating 3D snake in the skin editor. |
+| `src/preview.js` | The coiled 3D snake in the skin shop, and the little card pictures. |
 
 ### Key ideas you'll learn here
 
@@ -63,16 +70,16 @@ Each file does one job. Read them in this order:
 ## 🧪 Ideas to try next (good practice!)
 
 1. **Easy**: change `CONFIG.botCount`, `baseSpeed`, or the XP curve in `config.js`.
-2. **Easy**: add a new skin pattern in `segmentColor()` (`skins.js`) and add it to `PATTERNS`.
+2. **Easy**: add a new skin to `CATALOG` in `skins.js` (pick head, body, spikes, colors, price).
 3. **Medium**: add a new upgrade in `upgrades.js` (e.g. "Thorns: snakes that hit you lose 20% mass").
-4. **Medium**: add a new hat in `buildHead()` using Three.js shapes (Cone, Torus, Box...).
+4. **Medium**: add a new head type or hat in `heads.js` using Three.js shapes (Cone, Torus, RoundedBox...).
 5. **Medium**: add sound effects with the Web Audio API when eating / leveling / dying.
-6. **Hard**: meta-progression: earn coins each run and unlock hats or permanent bonuses.
+6. **Hard**: spend coins on permanent bonuses too (e.g. start every run with +10 length).
 7. **Hard**: give bots their own random upgrades as they grow, or add boss snakes.
 8. **Hard**: package it as a desktop app with [Electron](https://www.electronjs.org/) or [Tauri](https://tauri.app/).
 
 Debug tip: the game is exposed as `window.game`. Open the browser console (F12) and try
-`game.player.mass += 200` or `game.gainXp(100)`.
+`game.player.mass += 200`, `game.gainXp(100)` or `profile.coins = 99999` (then reopen the shop).
 
 ### Want to go further with a game engine?
 

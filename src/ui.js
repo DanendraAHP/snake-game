@@ -53,7 +53,7 @@ export class UI {
   renderBest() {
     const b = loadBest();
     $('best').innerHTML = b.level
-      ? `Best run — Level <b>${b.level}</b> · Length <b>${b.length}</b> · Kills <b>${b.kills}</b> · ${formatTime(b.time)}`
+      ? `Best run — ★<b>${b.level}</b> · Length <b>${b.length}</b> · Kills <b>${b.kills}</b> · ${formatTime(b.time)}`
       : 'No runs yet. Go get eaten!';
   }
 
@@ -194,6 +194,7 @@ export class UI {
     $('go-upgrades').innerHTML = Object.entries(stats.upgrades)
       .map(([id, n]) => `<span class="up-chip" title="${UPGRADES_BY_ID[id].name}">${UPGRADES_BY_ID[id].icon}${n > 1 ? `<small>x${n}</small>` : ''}</span>`)
       .join('');
+    $('go-coins').textContent = `+${stats.coins} 🪙 coins for the skin shop`;
     for (const k of ['level', 'length', 'kills', 'time']) if (isNew(k)) best[k] = stats[k];
     saveBest(best);
     this.renderBest();
