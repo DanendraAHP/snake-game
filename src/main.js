@@ -1,5 +1,6 @@
 import { CONFIG } from './config.js';
 import { Game } from './game.js';
+import { MAPS } from './maps.js';
 import { Input } from './input.js';
 import { UI } from './ui.js';
 import { SkinPreview, skinThumbnail } from './preview.js';
@@ -13,7 +14,8 @@ const game = new Game($('game'), input, ui);
 input.onPause = () => game.togglePause();
 
 const profile = loadProfile();
-game.startAttract(); // bots play in the background of the menu
+profile.map ||= 'neon';
+game.startAttract(profile.map); // bots play in the background of the menu
 
 function save() {
   saveProfile(profile);
@@ -32,16 +34,34 @@ function canAfford(price) {
 }
 
 function play() {
-  game.startRun(equippedSkin(profile), profile.name);
+  game.startRun(equippedSkin(profile), profile.name, profile.map);
 }
 
 function goMenu() {
   ui.hideHud();
   ui.show('menu');
-  game.startAttract();
+  game.startAttract(profile.map);
 }
 
 // ---------------------------------------------------------------- menu
+// Map picker: "Random" plus every map in maps.js.
+const MAP_CHOICES = [{ id: 'random', name: '🎲 Random map', desc: 'A different biome every run.' }, ...MAPS];
+function showMap() {
+  const m = MAP_CHOICES.find((x) => x.id === profile.map) || MAP_CHOICES[0];
+  $('map-name').textContent = m.name;
+  $('map-desc').textContent = m.desc;
+}
+function changeMap(step) {
+  const i = MAP_CHOICES.findIndex((x) => x.id === profile.map);
+  profile.map = MAP_CHOICES[(i + step + MAP_CHOICES.length) % MAP_CHOICES.length].id;
+  save();
+  showMap();
+  game.startAttract(profile.map); // preview the map behind the menu
+}
+$('map-prev').onclick = () => changeMap(-1);
+$('map-next').onclick = () => changeMap(1);
+showMap();
+
 $('player-name').value = profile.name;
 $('player-name').oninput = (e) => {
   profile.name = e.target.value.trim() || 'Player';

@@ -59,6 +59,67 @@ function dragon(upper, jaw, viper) {
   return 0.75;
 }
 
+// Small deterministic random numbers, so a head looks the same every time.
+function seeded(seed) {
+  return () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+}
+
+// Bone skull with stripes and huge teeth (inspired by Zabimaru).
+function bone(upper, jaw) {
+  upper.add('skin', RB(1.5, 1.0, 1.4, 0.3), { p: [0, 0.15, 0] });
+  upper.add('skin', RB(1.7, 0.55, 1.0, 0.2), { p: [1.2, 0.02, 0] });
+  // dark war-paint stripes on top
+  for (const x of [-0.35, 0.05, 0.45, 1.0, 1.4]) upper.add('dark', new THREE.BoxGeometry(0.13, 0.05, x > 0.8 ? 0.7 : 1.0), { p: [x, x > 0.8 ? 0.31 : 0.67, 0], r: [0, 0.35, 0] }, false);
+  for (const side of [1, -1]) {
+    upper.add('dark', SPHERE, { p: [0.42, 0.45, side * 0.52], s: [0.32, 0.3, 0.2] }, false); // eye socket
+    for (let k = 0; k < 5; k++) upper.add('white', TOOTH, { p: [0.55 + k * 0.32, -0.32, side * 0.4], r: DOWN, s: [1.4, 1.5, 1.4] }, false);
+  }
+  eyes(upper, 0.45, 0.45, 0.56, 0.24);
+  jaw.add('belly', RB(2.0, 0.3, 0.95, 0.12), { p: [1.0, -0.15, 0] });
+  jaw.add('mouth', new THREE.BoxGeometry(1.75, 0.05, 0.8), { p: [1.0, 0.02, 0] }, false);
+  for (const side of [1, -1]) for (let k = 0; k < 5; k++) jaw.add('white', TOOTH, { p: [0.6 + k * 0.32, 0.14, side * 0.36], s: [1.3, 1.4, 1.3] }, false);
+  return 0.7;
+}
+
+// Big cube head with glowing eyes (inspired by the Ender Dragon).
+function block(upper, jaw) {
+  upper.add('skin', new THREE.BoxGeometry(1.4, 1.1, 1.45), { p: [0, 0.2, 0] });
+  upper.add('skin', new THREE.BoxGeometry(1.3, 0.5, 1.0), { p: [1.25, 0.02, 0] });
+  for (const side of [1, -1]) {
+    upper.add('skin', new THREE.BoxGeometry(0.22, 0.16, 0.22), { p: [1.6, 0.33, side * 0.28] }); // nostrils
+    upper.add('glow', new THREE.BoxGeometry(0.42, 0.06, 0.34), { p: [0.5, 0.76, side * 0.4] }, false); // eyes (top)
+    upper.add('glow', new THREE.BoxGeometry(0.06, 0.2, 0.42), { p: [0.71, 0.42, side * 0.4] }, false); // eyes (front)
+    upper.add('accent', new THREE.BoxGeometry(0.24, 0.42, 0.24), { p: [-0.35, 0.95, side * 0.32] }); // head spines
+    upper.add('accent', new THREE.BoxGeometry(0.2, 0.32, 0.2), { p: [0.15, 0.9, side * 0.32] });
+  }
+  jaw.add('skin', new THREE.BoxGeometry(1.55, 0.3, 0.95), { p: [0.95, -0.15, 0] });
+  jaw.add('glow', new THREE.BoxGeometry(1.35, 0.05, 0.8), { p: [0.95, 0.02, 0] }, false); // glowing mouth
+  return 0.75;
+}
+
+// Long eastern dragon head with antlers and whiskers (inspired by Shenron).
+function eastern(upper, jaw) {
+  upper.add('skin', RB(1.4, 0.9, 1.3, 0.3), { p: [0, 0.15, 0] });
+  upper.add('skin', RB(1.75, 0.5, 0.95, 0.2), { p: [1.2, 0.05, 0] });
+  upper.add('skin', RB(0.45, 0.32, 0.75, 0.12), { p: [2.0, 0.15, 0] });
+  eyes(upper, 0.45, 0.48, 0.55, 0.24);
+  for (const side of [1, -1]) {
+    upper.add('skin', RB(0.6, 0.16, 0.34, 0.06), { p: [0.45, 0.72, side * 0.45], r: [side * 0.35, 0, -0.2] });
+    // antlers: a main branch with two small branches
+    upper.add('accent', new THREE.ConeGeometry(0.1, 1.6, 6), { p: [-0.75, 1.15, side * 0.55], r: [side * 0.35, 0, 0.85] });
+    upper.add('accent', new THREE.ConeGeometry(0.06, 0.7, 5), { p: [-0.55, 1.3, side * 0.5], r: [side * 0.2, 0, -0.1] });
+    upper.add('accent', new THREE.ConeGeometry(0.06, 0.6, 5), { p: [-1.05, 1.55, side * 0.65], r: [side * 0.3, 0, 0.1] });
+    // long whiskers flowing back
+    upper.add('accent', new THREE.ConeGeometry(0.05, 2.4, 5), { p: [1.0, 0.0, side * 0.95], r: [side * 0.55, 0, Math.PI / 2 + 0.15] }, false);
+    upper.add('white', FANG, { p: [1.75, -0.3, side * 0.3], r: DOWN }, false);
+    upper.add('dark', SPHERE, { p: [2.15, 0.25, side * 0.2], s: [0.06, 0.06, 0.06] }, false);
+    for (const x of [0.6, 0.95, 1.3]) upper.add('white', TOOTH, { p: [x, -0.28, side * 0.42], r: DOWN }, false);
+  }
+  jaw.add('belly', RB(1.9, 0.28, 0.9, 0.12), { p: [1.0, -0.14, 0] });
+  jaw.add('mouth', new THREE.BoxGeometry(1.65, 0.05, 0.75), { p: [1.0, 0.02, 0] }, false);
+  return 0.6;
+}
+
 function round(upper, eyeStyle) {
   upper.add('skin', SPHERE, { p: [0, 0.05, 0], s: [1.25, 0.95, 1.1] });
   const ball = (x, y, z, size, shine) => {
@@ -96,6 +157,18 @@ function hat(b, kind, top) {
         b.add('gold', new THREE.ConeGeometry(0.16, 0.85, 4), { p: [-0.3, top + 0.5, side * 0.48], r: [side * 0.2, 0, 0.25], s: [1, 1, 0.3] }, false);
       }
       break;
+    case 'mane': {
+      // A wild mane of fur spikes sweeping back from the head.
+      const rnd = seeded(42);
+      for (let k = 0; k < 16; k++) {
+        const side = k % 2 ? 1 : -1;
+        b.add('mane', new THREE.ConeGeometry(0.2, 1.1 + rnd() * 0.6, 5), {
+          p: [-0.4 - rnd() * 0.8, top - 0.1 + rnd() * 0.4, side * rnd() * 0.75],
+          r: [side * (0.3 + rnd() * 0.5), 0, 1.25 + rnd() * 0.4],
+        });
+      }
+      break;
+    }
     case 'halo':
       b.add('halo', new THREE.TorusGeometry(0.55, 0.07, 8, 32), { p: [-0.1, top + 0.65, 0], r: [Math.PI / 2, 0, 0] }, false);
       break;
@@ -114,7 +187,14 @@ function headGeometry(skin) {
   if (!cache.has(key)) {
     const upper = new PartBuilder(0.05);
     const jaw = new PartBuilder(0.04);
-    const top = skin.head === 'round' ? round(upper, skin.eyes) : dragon(upper, jaw, skin.head === 'viper');
+    const builders = {
+      round: () => round(upper, skin.eyes),
+      viper: () => dragon(upper, jaw, true),
+      bone: () => bone(upper, jaw),
+      block: () => block(upper, jaw),
+      eastern: () => eastern(upper, jaw),
+    };
+    const top = (builders[skin.head] || (() => dragon(upper, jaw, false)))();
     hat(upper, skin.hat, top);
     cache.set(key, { upper: upper.build(), jaw: jaw.build() });
   }
@@ -136,6 +216,8 @@ function materialsFor(skin) {
     halo: new THREE.MeshBasicMaterial({ color: 0xfff27a }),
     black: toon(0x1b1b22),
     red: toon(0xc8283c),
+    mane: toon(skin.maneColor || skin.colorC),
+    glow: new THREE.MeshBasicMaterial({ color: skin.eyeColor || '#ffd23d' }),
     outline: OUTLINE_MAT,
   };
 }

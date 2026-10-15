@@ -1,6 +1,6 @@
 // All the "feel" numbers of the game live here. Tweak them and reload!
 export const CONFIG = {
-  arenaRadius: 140, // size of the circular map
+  arenaRadius: 140, // size of the circular map (each map in maps.js sets its own)
   botCount: 12, // how many AI snakes are alive at once
   foodCount: 650, // natural food kept on the map
   foodCapacity: 2600, // hard limit incl. food dropped by dead snakes
@@ -18,6 +18,17 @@ export const CONFIG = {
 
   baseMagnet: 1.2, // every snake slightly attracts nearby food
   deathDropRatio: 0.8, // how much of a dead snake's mass turns into food
+
+  // Snake Clash rule: a snake with a HIGHER Lv eats a lower one on any touch.
+  eatAbsorb: 0.5, // the eater instantly gains this much of the victim's mass
+  botEatAbsorb: 0.35, // bots absorb less, so they don't snowball as fast as you
+  eatDrop: 0.3, // and this much is spilled as food around the victim
+
+  // Bosses
+  bossFirst: 90, // seconds until the first boss
+  bossInterval: 150, // seconds between bosses
+  bossWarning: 10, // warning shown this many seconds before
+  bossStay: 75, // the boss leaves after this many seconds if you survive
 
   startRerolls: 2,
 

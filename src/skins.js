@@ -8,6 +8,7 @@ import * as THREE from 'three';
 //   pattern: how colorA / colorB are spread along the body
 //   colorA (main), colorB (second / belly), colorC (accent: horns, spikes)
 //   eyeColor, eyes (round head only), hat, glow
+//   optional: belly (bool, a 2nd-color underside), spikeColor, maneColor
 // ---------------------------------------------------------------------------
 
 export const OPTIONS = {
@@ -15,17 +16,24 @@ export const OPTIONS = {
     { id: 'dragon', label: 'Dragon' },
     { id: 'viper', label: 'Viper' },
     { id: 'round', label: 'Cute' },
+    { id: 'bone', label: 'Bone Skull' },
+    { id: 'block', label: 'Blocky' },
+    { id: 'eastern', label: 'Eastern Dragon' },
   ],
   body: [
     { id: 'scales', label: 'Scales' },
     { id: 'blocky', label: 'Blocky' },
     { id: 'smooth', label: 'Smooth' },
+    { id: 'bone', label: 'Bone' },
+    { id: 'cube', label: 'Cube' },
   ],
   spikes: [
     { id: 'none', label: 'None' },
     { id: 'spikes', label: 'Spikes' },
     { id: 'fins', label: 'Flame Fins' },
     { id: 'plates', label: 'Plates' },
+    { id: 'ribs', label: 'Bone Spikes' },
+    { id: 'cubes', label: 'Cubes' },
   ],
   pattern: [
     { id: 'solid', label: 'Solid' },
@@ -48,6 +56,7 @@ export const OPTIONS = {
     { id: 'ears', label: 'Jackal Ears' },
     { id: 'halo', label: 'Halo' },
     { id: 'tophat', label: 'Top Hat' },
+    { id: 'mane', label: 'Wild Mane' },
   ],
 };
 
@@ -70,6 +79,10 @@ export const CATALOG = [
   S('sakura', 'Sakura', 'epic', 2000, { spikes: 'fins', pattern: 'gradient', colorA: '#ff9ccf', colorB: '#fff0f6', colorC: '#ffc83d', eyeColor: '#ff4d8d' }),
   S('anubis', 'Anubis', 'legend', 5000, { body: 'blocky', spikes: 'plates', hat: 'ears', colorA: '#2a2a33', colorB: '#3a3a46', colorC: '#ffc83d', eyeColor: '#ffae00' }),
   S('inferno', 'Inferno King', 'legend', 5500, { spikes: 'fins', pattern: 'gradient', hat: 'crown', glow: true, colorA: '#ffd23d', colorB: '#ff2a00', colorC: '#ff6a00', eyeColor: '#ff2a00' }),
+  // Mythic: inspired by famous dragons.
+  S('zabimaru', 'Zabimaru', 'mythic', 9000, { head: 'bone', body: 'bone', spikes: 'ribs', hat: 'mane', pattern: 'stripes', colorA: '#efe6cf', colorB: '#cdb88f', colorC: '#efe6cf', spikeColor: '#e8dcc0', maneColor: '#d2232a', eyeColor: '#ffd400' }),
+  S('ender', 'Ender Dragon', 'mythic', 9500, { head: 'block', body: 'cube', spikes: 'cubes', pattern: 'stripes', colorA: '#1d1d24', colorB: '#2b2b35', colorC: '#5d5d68', spikeColor: '#70707c', eyeColor: '#e04dff' }),
+  S('shenron', 'Shenron', 'mythic', 10000, { head: 'eastern', body: 'scales', spikes: 'spikes', belly: true, colorA: '#2f9e44', colorB: '#f0a040', colorC: '#d1a868', spikeColor: '#1f6b2e', maneColor: '#1f6b2e', eyeColor: '#ff2a2a' }),
   S('void', 'Void Leviathan', 'legend', 6000, { spikes: 'fins', pattern: 'gradient', glow: true, colorA: '#8a2be2', colorB: '#140a26', colorC: '#ff3bd4', eyeColor: '#ff3bd4' }),
 ];
 export const CATALOG_BY_ID = Object.fromEntries(CATALOG.map((s) => [s.id, s]));
@@ -79,6 +92,14 @@ export const RARITIES = [
   { id: 'rare', label: 'Rare' },
   { id: 'epic', label: 'Epic' },
   { id: 'legend', label: 'Legend' },
+  { id: 'mythic', label: 'Mythic' },
+];
+
+// Boss-only skins (not sold in the shop).
+export const BOSS_SKINS = [
+  S('boss_wyrm', 'Crimson Wyrm', 'boss', 0, { spikes: 'fins', pattern: 'gradient', hat: 'crown', glow: true, colorA: '#c4001d', colorB: '#2a0008', colorC: '#ffd23d', eyeColor: '#ffe600' }),
+  S('boss_tyrant', 'Bone Tyrant', 'boss', 0, { head: 'bone', body: 'bone', spikes: 'ribs', hat: 'horns', pattern: 'bands', colorA: '#3a3a3a', colorB: '#e8dcc0', colorC: '#e8dcc0', spikeColor: '#e8dcc0', eyeColor: '#ff2a00' }),
+  S('boss_leviathan', 'Abyss Leviathan', 'boss', 0, { head: 'eastern', spikes: 'fins', belly: true, glow: true, pattern: 'gradient', colorA: '#102a8f', colorB: '#00e5ff', colorC: '#7af7ff', spikeColor: '#00e5ff', maneColor: '#00e5ff', eyeColor: '#ffffff' }),
 ];
 
 export const DEFAULT_CUSTOM = { ...CATALOG_BY_ID.jungle, id: 'custom', label: 'My Custom', rarity: 'custom', price: 0 };
@@ -122,7 +143,7 @@ export function equippedSkin(profile) {
 // Bots
 // ---------------------------------------------------------------------------
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const BOT_WEIGHT = { common: 6, rare: 4, epic: 2, legend: 1 };
+const BOT_WEIGHT = { common: 6, rare: 4, epic: 2, legend: 1, mythic: 1 };
 
 export function randomBotSkin() {
   if (Math.random() < 0.3) return randomCustomSkin();

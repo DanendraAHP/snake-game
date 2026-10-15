@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+const BOSS_ICON = '👹';
 import { RARITY, UPGRADES_BY_ID } from './upgrades.js';
 
 const $ = (id) => document.getElementById(id);
@@ -92,6 +93,17 @@ export class UI {
     if (rank >= 8) html += `<li class="me" value="${rank + 1}"><span>${escapeHtml(p.name)}</span><span>${Math.floor(p.mass)}</span></li>`;
     $('leaderboard').innerHTML = html;
 
+    // Boss countdown / boss info
+    const bossEl = $('hud-boss');
+    if (game.boss) {
+      bossEl.className = 'hud-boss active';
+      bossEl.innerHTML = `${BOSS_ICON} <b>${escapeHtml(game.boss.name)}</b> Lv${game.boss.lv} · leaves in ${formatTime(Math.max(0, game.bossLeft))}`;
+    } else {
+      const t = Math.max(0, game.bossTimer);
+      bossEl.className = 'hud-boss' + (t <= CONFIG.bossWarning ? ' warn' : '');
+      bossEl.innerHTML = `${BOSS_ICON} Boss in <b>${formatTime(t)}</b>`;
+    }
+
     this.drawMinimap(game);
   }
 
@@ -106,10 +118,17 @@ export class UI {
     g.beginPath();
     g.arc(c, c, c - 4, 0, Math.PI * 2);
     g.stroke();
+    // Lava pools
+    g.fillStyle = '#ff5a00';
+    for (const p of game.pools) {
+      g.beginPath();
+      g.arc(c + p.x * scale, c + p.z * scale, p.r * scale, 0, Math.PI * 2);
+      g.fill();
+    }
     for (const s of game.snakes) {
       const me = s === game.player;
-      g.fillStyle = me ? '#ffffff' : s.skin.colorA;
-      const r = me ? 4 : 1.5 + Math.sqrt(s.mass) / 6;
+      g.fillStyle = me ? '#ffffff' : s.isBoss ? '#ff2020' : s.skin.colorA;
+      const r = me ? 4 : s.isBoss ? 7 : 1.5 + Math.sqrt(s.mass) / 6;
       g.beginPath();
       g.arc(c + s.head.x * scale, c + s.head.z * scale, r, 0, Math.PI * 2);
       g.fill();
@@ -194,6 +213,7 @@ export class UI {
     $('go-upgrades').innerHTML = Object.entries(stats.upgrades)
       .map(([id, n]) => `<span class="up-chip" title="${UPGRADES_BY_ID[id].name}">${UPGRADES_BY_ID[id].icon}${n > 1 ? `<small>x${n}</small>` : ''}</span>`)
       .join('');
+    $('go-extra').textContent = `Map: ${stats.map} · Bosses eaten: ${stats.bossKills}`;
     $('go-coins').textContent = `+${stats.coins} 🪙 coins for the skin shop`;
     for (const k of ['level', 'length', 'kills', 'time']) if (isNew(k)) best[k] = stats[k];
     saveBest(best);

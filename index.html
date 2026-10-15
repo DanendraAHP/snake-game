@@ -29,7 +29,8 @@
       </div>
       <canvas id="minimap" width="170" height="170"></canvas>
       <div id="hud-upgrades"></div>
-      <div class="hud-hint">Mouse to steer · Hold click / Space to boost · Esc to pause</div>
+      <div id="hud-boss" class="hud-boss"></div>
+      <div class="hud-hint">Mouse to steer · Hold click / Space to boost · Esc to pause · <span class="red">Red Lv</span> = bigger than you, run!</div>
     </div>
     <div id="toasts"></div>
 
@@ -39,6 +40,11 @@
         <h1>SERPENT <span>ROGUE</span></h1>
         <p class="tagline">Eat. Grow. Level up. Choose your power. Outlast the bots.</p>
         <label class="name-row">Your name <input id="player-name" maxlength="14" /></label>
+        <div class="map-row">
+          <button id="map-prev" class="btn arrow" title="Previous map">◀</button>
+          <div class="map-info"><div id="map-name"></div><div id="map-desc"></div></div>
+          <button id="map-next" class="btn arrow" title="Next map">▶</button>
+        </div>
         <div class="menu-buttons">
           <button id="btn-play" class="btn big">▶ Play</button>
           <button id="btn-skin" class="btn">🐉 Skins <span class="menu-coins">🪙 <b class="coin-count">0</b></span></button>
@@ -92,8 +98,10 @@
           <li>🖱️ Your snake follows the <b>mouse</b>. Or use <b>A / D</b> (arrow keys) to turn.</li>
           <li>🚀 Hold <b>left click</b> or <b>Space</b> to boost. Boosting burns length.</li>
           <li>🍬 Eat glowing orbs to grow and earn <b>XP</b>. Golden orbs are worth 5x.</li>
-          <li>💥 If your <b>head</b> touches another snake's body, you die. Your own body is safe.</li>
-          <li>🎯 Make bots crash into <b>your</b> body and eat what they drop.</li>
+          <li>🐉 Every snake shows its <b>Lv</b> (its size). When two snakes touch, the <b>higher Lv eats the lower one</b>, from any side!</li>
+          <li>🔴 <b>Red</b> labels are bigger than you: run! <b>White</b> labels are smaller: hunt them.</li>
+          <li>👹 Every few minutes a giant <b>BOSS</b> appears and hunts you. Survive until it leaves, or grow big enough to eat it.</li>
+          <li>🗺️ Pick a <b>map</b> on the menu: each biome has its own twist (lava, ice, extra food...).</li>
           <li>⬆️ Every level up, <b>pick 1 of 3 power-ups</b>. Stack them to build a run.</li>
           <li>☠️ Bots get bigger and meaner over time. How long can you last?</li>
           <li>🪙 Every run earns coins. Spend them on new skins in the 🐉 Skins shop.</li>
@@ -129,6 +137,7 @@
         <h2>You were eaten!</h2>
         <div id="go-stats" class="go-stats"></div>
         <div id="go-upgrades" class="go-upgrades"></div>
+        <div id="go-extra" class="go-extra"></div>
         <div id="go-coins" class="go-coins"></div>
         <div class="menu-buttons">
           <button id="btn-again" class="btn big">↻ Play again</button>

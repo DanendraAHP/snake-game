@@ -42,16 +42,20 @@ export class FoodField {
   }
 
   spawnRandom(goldenChance) {
-    const r = CONFIG.arenaRadius * 0.97 * Math.sqrt(Math.random());
-    const a = Math.random() * Math.PI * 2;
+    let r, a;
+    for (let tries = 0; tries < 10; tries++) {
+      r = CONFIG.arenaRadius * 0.97 * Math.sqrt(Math.random());
+      a = Math.random() * Math.PI * 2;
+      if (!this.blocked?.(Math.cos(a) * r, Math.sin(a) * r)) break; // e.g. not inside lava
+    }
     const golden = Math.random() < goldenChance;
     const value = golden ? 5 : Math.random() < 0.15 ? 2 : 1;
     this.spawn(Math.cos(a) * r, Math.sin(a) * r, value, { natural: true, golden });
   }
 
   // Keep the map stocked with food.
-  maintain(goldenChance, perFrame = 25) {
-    for (let i = 0; i < perFrame && this.natural < CONFIG.foodCount; i++) this.spawnRandom(goldenChance);
+  maintain(goldenChance, target = CONFIG.foodCount, perFrame = 25) {
+    for (let i = 0; i < perFrame && this.natural < target; i++) this.spawnRandom(goldenChance);
   }
 
   rebuildGrid() {

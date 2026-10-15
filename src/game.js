@@ -5,7 +5,8 @@ import { BotBrain } from './bot.js';
 import { FoodField } from './food.js';
 import { SpatialHash } from './grid.js';
 import { Particles } from './particles.js';
-import { randomBotSkin, randomBotName, segmentColor } from './skins.js';
+import { randomBotSkin, randomBotName, segmentColor, BOSS_SKINS } from './skins.js';
+import { MAPS, MAP_DEFAULTS, getMap, buildMap, disposeGroup } from './maps.js';
 import { rollChoices, applyUpgrade } from './upgrades.js';
 
 const tmpColor = new THREE.Color();
@@ -42,8 +43,9 @@ export class Game {
     sc.far = 200;
     this.scene.add(this.sun, this.sun.target);
 
-    this.buildArena();
     this.food = new FoodField(this.scene);
+    this.food.blocked = (x, z) => this.inLava(x, z, 2);
+    this.setMap(MAPS[0]);
     this.particles = new Particles(this.scene);
     this.segGrid = new SpatialHash(3);
     this.maxSegRadius = 1;
@@ -68,83 +70,23 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ world
-  buildArena() {
-    const R = CONFIG.arenaRadius;
+  // Switch to a map/biome (see maps.js): rebuilds the floor, wall, decorations and lava.
+  setMap(map) {
+    if (this.arena) disposeGroup(this.arena);
+    this.map = { ...MAP_DEFAULTS, ...map };
+    CONFIG.arenaRadius = map.radius;
+    const built = buildMap(this.map);
+    this.arena = built.group;
+    this.pools = built.pools;
+    this.scene.add(this.arena);
+    this.scene.background = new THREE.Color(map.bg);
+    this.scene.fog = new THREE.Fog(map.bg, 90, 300);
+  }
 
-    // Hex-grid floor texture drawn on a 2D canvas.
-    const c = document.createElement('canvas');
-    c.width = 256;
-    c.height = 222;
-    const g = c.getContext('2d');
-    g.fillStyle = '#141a33';
-    g.fillRect(0, 0, c.width, c.height);
-    g.strokeStyle = '#26305a';
-    g.lineWidth = 4;
-    const hex = (cx, cy, r) => {
-      g.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const a = (Math.PI / 3) * i;
-        g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
-      }
-      g.closePath();
-      g.stroke();
-    };
-    const r = 64;
-    const h = Math.sqrt(3) * r;
-    for (let col = -1; col < 4; col++) {
-      for (let row = -1; row < 3; row++) {
-        hex(col * r * 1.5, row * h + (col % 2 ? h / 2 : 0), r);
-      }
-    }
-    const tex = new THREE.CanvasTexture(c);
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set((R * 2) / 14, (R * 2) / 14);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 8;
-
-    const floor = new THREE.Mesh(
-      new THREE.CircleGeometry(R + 60, 96),
-      new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 }),
-    );
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    this.scene.add(floor);
-
-    // Danger zone outside the arena.
-    const outside = new THREE.Mesh(
-      new THREE.RingGeometry(R, R + 60, 96),
-      new THREE.MeshBasicMaterial({ color: 0x400818, transparent: true, opacity: 0.6 }),
-    );
-    outside.rotation.x = -Math.PI / 2;
-    outside.position.y = 0.03;
-    this.scene.add(outside);
-
-    const wall = new THREE.Mesh(
-      new THREE.CylinderGeometry(R, R, 3, 160, 1, true),
-      new THREE.MeshBasicMaterial({ color: 0xff3366, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false }),
-    );
-    wall.position.y = 1.5;
-    this.scene.add(wall);
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(R, 0.25, 8, 220), new THREE.MeshBasicMaterial({ color: 0xff6b8a }));
-    rim.rotation.x = Math.PI / 2;
-    rim.position.y = 3;
-    this.scene.add(rim);
-
-    // Decorative glowing crystals outside the arena.
-    const crystalGeo = new THREE.OctahedronGeometry(1, 0);
-    for (let i = 0; i < 50; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const d = R + 8 + Math.random() * 40;
-      const s = 1.5 + Math.random() * 4;
-      const m = new THREE.Mesh(
-        crystalGeo,
-        new THREE.MeshStandardMaterial({ color: 0x223355, emissive: new THREE.Color().setHSL(0.5 + Math.random() * 0.4, 0.9, 0.5), emissiveIntensity: 0.7 }),
-      );
-      m.position.set(Math.cos(a) * d, s * 0.8, Math.sin(a) * d);
-      m.scale.set(s * 0.6, s * 1.6, s * 0.6);
-      m.rotation.y = Math.random() * 3;
-      this.scene.add(m);
-    }
+  // Is the circle (x, z, margin) touching a lava pool?
+  inLava(x, z, margin = 0) {
+    for (const p of this.pools) if ((x - p.x) ** 2 + (z - p.z) ** 2 < (p.r + margin) ** 2) return true;
+    return false;
   }
 
   clearWorld() {
@@ -153,21 +95,28 @@ export class Game {
     this.player = null;
     this.food.clear();
     this.particles.clear();
-    for (let i = 0; i < CONFIG.foodCount; i++) this.food.spawnRandom(0.01);
+    for (let i = 0; i < CONFIG.foodCount * this.map.foodMul; i++) this.food.spawnRandom(0.01);
     this.respawnQueue = [];
+    this.boss = null;
+    this.bossCount = 0;
+    this.bossKills = 0;
+    this.bossTimer = CONFIG.bossFirst;
+    this.bossWarned = false;
     this.runTime = 0;
     this.threat = 1;
     this.paused = false;
     this.choosing = false;
   }
 
-  startAttract() {
+  startAttract(mapId) {
+    if (mapId) this.setMap(getMap(mapId));
     this.clearWorld();
     this.state = 'attract';
     for (let i = 0; i < CONFIG.botCount; i++) this.spawnBot();
   }
 
-  startRun(skin, name = 'Player') {
+  startRun(skin, name = 'Player', mapId = 'neon') {
+    this.setMap(getMap(mapId));
     this.clearWorld();
     this.state = 'playing';
     const p = new Snake(this, { skin, name, x: 0, z: 0, angle: Math.random() * Math.PI * 2, isPlayer: true });
@@ -181,6 +130,7 @@ export class Game {
     this.snakes.push(p);
     for (let i = 0; i < CONFIG.botCount; i++) this.spawnBot();
     this.ui.showHud(p);
+    this.ui.toast(`🗺️ ${this.map.name}: ${this.map.desc}`);
   }
 
   spawnBot() {
@@ -193,8 +143,10 @@ export class Game {
       z = Math.sin(a) * r;
       if (!this.player?.alive || Math.hypot(x - this.player.head.x, z - this.player.head.z) > 35) break;
     }
-    // Bots spawn bigger as the run goes on: the "threat" ramps up.
-    const mass = CONFIG.startMass + Math.random() * 25 * this.threat + (this.threat - 1) * 30;
+    // Bots spawn around YOUR size (some smaller = food, some bigger = danger),
+    // and a bit bigger as the run goes on: the "threat" ramps up.
+    const base = this.player?.alive ? this.player.mass : 30;
+    const mass = Math.max(8, base * (0.35 + Math.random() * 1.0)) * (1 + (this.threat - 1) * 0.15);
     const bot = new Snake(this, { skin: randomBotSkin(), name: randomBotName(), x, z, angle: Math.random() * Math.PI * 2, mass });
     bot.brain = new BotBrain(bot, this);
     bot.invuln = 1;
@@ -246,9 +198,12 @@ export class Game {
       this.spawnBot();
     }
 
-    const goldenChance = 0.01 + (p?.alive ? p.stats.goldenBonus : 0);
+    if (this.state === 'playing') this.updateBoss(dt);
+
+    const goldenChance = 0.01 + this.map.goldenBonus + (p?.alive ? p.stats.goldenBonus : 0);
     this.food.compact();
-    this.food.maintain(goldenChance);
+    this.food.maintain(goldenChance, CONFIG.foodCount * this.map.foodMul);
+    if (this.arena.userData.lavaMat) this.arena.userData.lavaMat.color.setHSL(0.06 + Math.sin(this.time * 2) * 0.015, 1, 0.5);
     this.food.render(this.time);
     for (const s of this.snakes) s.render(this.time);
     this.particles.update(dt);
@@ -312,36 +267,51 @@ export class Game {
     const R = CONFIG.arenaRadius;
     const safe = s.invuln > 0 || s.phase > 0;
 
-    // The wall.
+    // The wall and lava pools.
     const dc = Math.hypot(h.x, h.z);
-    if (dc + hr > R) {
+    const inLava = this.inLava(h.x, h.z, -0.3);
+    if (dc + hr > R || inLava) {
       if (safe) {
-        seg0.x *= (R - hr - s.radius - 0.1) / dc;
-        seg0.z *= (R - hr - s.radius - 0.1) / dc;
-        s.angle = s.targetAngle = Math.atan2(-seg0.z, -seg0.x);
+        if (inLava) {
+          s.angle = s.targetAngle = s.angle + Math.PI;
+        } else {
+          seg0.x *= (R - hr - s.radius - 0.1) / dc;
+          seg0.z *= (R - hr - s.radius - 0.1) / dc;
+          s.angle = s.targetAngle = Math.atan2(-seg0.z, -seg0.x);
+        }
       } else {
+        if (inLava && s.isPlayer) this.ui.toast('🔥 Burned in lava!');
         this.hit(s, null);
       }
       return;
     }
-    if (safe) return;
+    if (s.phase > 0) return; // phased snakes pass through everything
 
-    // Other snakes' bodies (your own body is safe, like slither.io).
-    let killer = null;
+    // Touching another snake: the HIGHER Lv eats the lower one, from any side.
+    let other = null;
     this.segGrid.query(h.x, h.z, hr + this.maxSegRadius, (seg) => {
       const o = seg.owner;
       if (o === s || !o.alive || o.phase > 0) return;
       const rr = hr + o.radius * 0.85;
       if ((seg.x - h.x) ** 2 + (seg.z - h.z) ** 2 < rr * rr) {
-        if (seg.idx === 0 && s.mass > o.mass) return; // head-on: the bigger snake wins
-        killer = o;
+        other = o;
         return false;
       }
     });
-    if (killer) this.hit(s, killer);
+    if (!other) return;
+    if (s.lv > other.lv) {
+      if (other.invuln <= 0) this.hit(other, s, true); // chomp!
+    } else if (s.lv < other.lv) {
+      if (!safe) this.hit(s, other, true);
+    } else {
+      // Same Lv: bounce off each other.
+      s.angle = s.targetAngle = s.angle + Math.PI;
+      s.invuln = Math.max(s.invuln, 0.4);
+    }
   }
 
-  hit(s, killer) {
+  // Something fatal happened to `s`. Shields and Second Wind can save it.
+  hit(s, killer, eaten = false) {
     if (s.shields > 0) {
       s.shields--;
       s.shieldTimer = 0;
@@ -362,16 +332,25 @@ export class Game {
     }
     s.alive = false;
     s.killer = killer;
+    s.eaten = eaten;
   }
 
   onDeath(s) {
     s.handled = true;
     const killer = s.killer;
 
-    // The body turns into food, colored like the dead snake.
+    // Eaten: the eater swallows a big part of it right away.
+    if (s.eaten && killer?.alive) {
+      killer.grow(s.mass * (killer.isPlayer ? CONFIG.eatAbsorb : CONFIG.botEatAbsorb));
+      killer.chomp = 0.22;
+      this.particles.burst(s.head.x, s.head.z, '#ffffff', 25, 9);
+    }
+
+    // The (rest of the) body turns into food, colored like the dead snake.
     const n = s.segments.length;
     const drops = Math.ceil(n / 2);
-    const total = s.mass * CONFIG.deathDropRatio * (killer ? killer.stats.dropMul : 1);
+    const ratio = s.eaten ? CONFIG.eatDrop : CONFIG.deathDropRatio;
+    const total = s.mass * ratio * (killer ? killer.stats.dropMul : 1);
     const per = Math.max(0.5, total / drops);
     for (let i = 0; i < n; i += 2) {
       const seg = s.segments[i];
@@ -386,12 +365,13 @@ export class Game {
       if (killer.isPlayer) {
         this.gainXp((15 + s.mass * 0.25) * killer.stats.killXpMul);
         if (killer.upgrades.predator) killer.grow(s.mass * 0.15);
-        this.ui.toast(`🐍 You defeated ${s.name}!`);
+        if (!s.isBoss) this.ui.toast(`🐍 You ate ${s.name}!`);
       }
     }
 
     s.dispose();
-    if (s.isPlayer) this.gameOver();
+    if (s.isBoss) this.onBossDefeated(s, killer);
+    else if (s.isPlayer) this.gameOver();
     else this.respawnQueue.push({ t: 2 + Math.random() * 2 });
   }
 
@@ -450,11 +430,79 @@ export class Game {
       kills: p.kills,
       time: this.runTime,
       upgrades: p.upgrades,
+      bossKills: this.bossKills,
+      map: this.map.name,
     };
     // Coins for the skin shop: bigger, longer, deadlier runs earn more.
-    stats.coins = Math.round(p.maxMass / 4 + p.kills * 15 + p.level * 10 + this.runTime / 6);
+    stats.coins = Math.round(p.maxMass / 4 + p.kills * 15 + p.level * 10 + this.runTime / 6 + this.bossKills * 150);
     this.onGameOver?.(stats);
     this.ui.showGameOver(stats);
+  }
+
+  // ------------------------------------------------------------------ bosses
+  updateBoss(dt) {
+    const p = this.player;
+    if (!p?.alive) return;
+    if (!this.boss) {
+      this.bossTimer -= dt;
+      if (!this.bossWarned && this.bossTimer <= CONFIG.bossWarning) {
+        this.bossWarned = true;
+        this.ui.toast('⚠️ A BOSS is coming! Grow fast or stay away!');
+      }
+      if (this.bossTimer <= 0) this.spawnBoss();
+      return;
+    }
+    this.bossLeft -= dt;
+    if (this.bossLeft <= 0) {
+      // You survived: the boss gives up and leaves.
+      const b = this.boss;
+      this.particles.burst(b.head.x, b.head.z, b.skin.colorA, 60, 14);
+      b.alive = false;
+      b.handled = true;
+      b.dispose();
+      this.snakes = this.snakes.filter((s) => s !== b);
+      this.boss = null;
+      this.bossTimer = CONFIG.bossInterval;
+      this.bossWarned = false;
+      this.gainXp(25 + this.bossCount * 10);
+      this.ui.toast(`🏃 You survived ${b.name}! Bonus XP!`);
+    }
+  }
+
+  spawnBoss() {
+    const p = this.player;
+    const R = CONFIG.arenaRadius;
+    // Come in from the far side of the map.
+    const a = Math.atan2(-p.head.z, -p.head.x) + (Math.random() - 0.5);
+    const x = Math.cos(a) * R * 0.75;
+    const z = Math.sin(a) * R * 0.75;
+    const skin = BOSS_SKINS[this.bossCount % BOSS_SKINS.length];
+    // Always much bigger than you, and each boss bigger than the last.
+    const mass = Math.max(180, p.mass * 1.8) * (1 + this.bossCount * 0.25);
+    const boss = new Snake(this, { skin, name: skin.label, x, z, angle: a + Math.PI, mass });
+    boss.isBoss = true;
+    boss.noGrow = true;
+    boss.stats.sizeMul = 1.2;
+    boss.stats.speedMul = 0.92;
+    boss.invuln = 2;
+    boss.brain = new BotBrain(boss, this, { boss: true });
+    this.snakes.push(boss);
+    this.boss = boss;
+    this.bossCount++;
+    this.bossLeft = CONFIG.bossStay;
+    this.particles.burst(x, z, skin.colorA, 80, 16);
+    this.ui.toast(`👹 BOSS: ${skin.label} (Lv${boss.lv}) appeared!`);
+  }
+
+  onBossDefeated(b, killer) {
+    this.boss = null;
+    this.bossTimer = CONFIG.bossInterval;
+    this.bossWarned = false;
+    if (killer?.isPlayer) {
+      this.bossKills++;
+      this.gainXp(80 + b.lv * 0.2);
+      this.ui.toast(`🏆 You ate the boss ${b.name}! +150 coins at the end of the run!`);
+    }
   }
 
   // ------------------------------------------------------------------ camera

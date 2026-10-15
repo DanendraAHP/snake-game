@@ -32,6 +32,8 @@ export class Snake {
     this.phantomCooldown = 0;
     this.freeBoost = 0;
     this.chomp = 0; // jaw animation timer
+    this.isBoss = false;
+    this.noGrow = false; // bosses keep their size
 
     this.wantBoost = false;
     this.boosting = false;
@@ -57,6 +59,10 @@ export class Snake {
   get head() {
     return this.segments[0];
   }
+  // The "Lv" shown above every snake. Higher Lv eats lower Lv on touch.
+  get lv() {
+    return Math.floor(this.mass);
+  }
 
   targetSegments() {
     return Math.min(CONFIG.maxSegments, Math.floor(6 + this.mass * 0.5));
@@ -69,6 +75,7 @@ export class Snake {
 
   grow(amount) {
     if (amount > 0 && this.chomp <= 0) this.chomp = 0.22;
+    if (this.noGrow && amount > 0) return;
     this.mass += amount;
     this.maxMass = Math.max(this.maxMass, this.mass);
   }
@@ -92,7 +99,8 @@ export class Snake {
     }
 
     // --- Steering: turn toward targetAngle, limited by turn rate ---
-    const turnRate = (CONFIG.turnRate * st.turnMul) / (1 + (this.radius - CONFIG.baseRadius) * 0.35);
+    const map = this.game.map;
+    const turnRate = (CONFIG.turnRate * st.turnMul * map.turnMul) / (1 + (this.radius - CONFIG.baseRadius) * 0.35);
     const diff = wrapAngle(this.targetAngle - this.angle);
     const maxTurn = turnRate * dt;
     this.angle = wrapAngle(this.angle + Math.max(-maxTurn, Math.min(maxTurn, diff)));
@@ -104,7 +112,7 @@ export class Snake {
       this.phase = 1.2;
       this.phantomCooldown = 8;
     }
-    let speed = CONFIG.baseSpeed * st.speedMul;
+    let speed = CONFIG.baseSpeed * st.speedMul * map.speedMul;
     if (this.boosting) {
       speed *= CONFIG.boostMultiplier * st.boostMul;
       if (this.freeBoost <= 0) {
@@ -150,12 +158,21 @@ export class Snake {
     const chomp = this.chomp > 0 ? Math.sin((this.chomp / 0.22) * Math.PI) : 0;
     this.model.update(this.segments, this.radius, this.angle, time, {
       jaw: Math.max(chomp, this.boosting ? 0.45 : 0.05),
-      label: `Lv${Math.floor(this.mass)}\n${this.name}`,
-      labelColor: this.isPlayer ? '#ffe066' : '#ffffff',
+      label: `${this.isBoss ? 'BOSS ' : ''}Lv${this.lv}\n${this.name}`,
+      labelColor: this.labelColor(),
       boosting: this.boosting,
       phase: this.phase > 0,
       invuln: this.invuln > 0,
     });
+  }
+
+  // Yellow = you. Red = bigger than you (it can eat you!). White = you can eat it.
+  labelColor() {
+    if (this.isPlayer) return '#ffe066';
+    if (this.isBoss) return '#ff3b3b';
+    const p = this.game.player;
+    if (p?.alive && this.lv >= p.lv) return '#ff7a7a';
+    return '#ffffff';
   }
 
   dispose() {

@@ -5,7 +5,12 @@ An offline 3D snake game (like slither.io / Snake Clash) with **collectible drag
 
 - 🐉 Cartoon 3D snakes: dragon / viper / cute heads with chomping jaws and teeth, scale plates,
   spikes or flame fins, black outlines and toon shading.
-- 🛒 Skin shop with **Common / Rare / Epic / Legend** skins (Fire Dragon, Anubis, Void Leviathan...),
+- 🐉 **Snake Clash rule**: every snake shows its **Lv** (size). When two snakes touch, the **higher Lv eats
+  the lower one from any side**. Red labels = bigger than you (run!), white = food.
+- 🗺️ **6 maps / biomes**, each with a twist: Neon Arena, Jungle (+50% food), Desert (huge), Frozen Lake
+  (slippery), Volcano (deadly lava pools), The End (more golden food). Pick one or "Random" on the menu.
+- 👹 **Bosses** every few minutes: a giant snake hunts you. Survive until it leaves, or outgrow it and eat it.
+- 🛒 Skin shop with **Common / Rare / Epic / Legend / Mythic** skins (Mythic: Zabimaru, Ender Dragon, Shenron) (Fire Dragon, Anubis, Void Leviathan...),
   bought with coins you earn at the end of each run, plus a **Custom** tab to design your own.
 
 Built with plain JavaScript + [Three.js](https://threejs.org/) (3D) + [Vite](https://vitejs.dev/) (dev server).
@@ -51,7 +56,8 @@ Each file does one job. Read them in this order:
 | --- | --- |
 | `src/config.js` | All tuning numbers (speed, arena size, bot count, XP curve). **Start experimenting here.** |
 | `src/main.js` | Entry point: creates the game, wires up menu buttons and the skin editor. |
-| `src/game.js` | The heart: the 3D scene and the **game loop** (input → AI → move → eat → collide → die → draw). |
+| `src/game.js` | The heart: the 3D scene and the **game loop** (input → AI → move → eat → collide → die → draw), plus bosses. |
+| `src/maps.js` | The maps/biomes: floor textures, decorations, lava pools and each map's gameplay twist. |
 | `src/snake.js` | Snake rules: steering, boosting, following body segments, growing. |
 | `src/model.js` | Draws a snake: body plates + back spikes as `InstancedMesh`es (hundreds of copies in one draw call), head, "Lv" label. |
 | `src/skins.js` | Skin options, the shop **catalog** (rarity + price), body color patterns, your saved profile (coins, owned skins). |

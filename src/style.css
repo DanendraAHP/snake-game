@@ -10,6 +10,7 @@
   --rare: #4fa9ff;
   --epic: #c76bff;
   --legend: #ffb020;
+  --mythic: #ff3b6b;
 }
 
 * { box-sizing: border-box; }
@@ -137,6 +138,13 @@ html, body {
   .shop-stage { flex: none; height: 260px; }
 }
 
+/* ---------- Map picker ---------- */
+.map-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; }
+.map-info { width: 300px; background: rgba(16, 22, 46, 0.7); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px; }
+#map-name { font-weight: bold; font-size: 18px; color: var(--gold); }
+#map-desc { font-size: 13px; color: var(--muted); }
+.btn.arrow { padding: 10px 14px; }
+
 /* ---------- HUD ---------- */
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
 .hud-top-left { position: absolute; top: 14px; left: 14px; padding: 12px 14px; min-width: 300px; }
@@ -158,6 +166,13 @@ html, body {
 .up-chip { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 4px 8px; font-size: 18px; }
 .up-chip small { font-size: 12px; color: var(--muted); margin-left: 2px; }
 .hud-hint { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); color: var(--muted); font-size: 13px; opacity: 0.7; white-space: nowrap; }
+
+.hud-boss { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 8px 16px; font-size: 15px; white-space: nowrap; }
+.hud-boss.warn { border-color: #ff6b6b; color: #ffb3b3; animation: pulse 0.6s infinite alternate; }
+.hud-boss.active { background: rgba(120, 10, 20, 0.85); border-color: #ff3b3b; }
+@keyframes pulse { to { transform: translateX(-50%) scale(1.06); } }
+.hud-hint .red { color: #ff7a7a; font-weight: bold; }
+.go-extra { margin-top: 10px; color: var(--muted); }
 
 #toasts { position: fixed; top: 90px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 6; pointer-events: none; }
 .toast { background: var(--panel); border: 1px solid var(--border); padding: 8px 16px; border-radius: 10px; animation: toast 2.4s forwards; }
@@ -189,6 +204,7 @@ html, body {
 .r-rare { --c: var(--rare); }
 .r-epic { --c: var(--epic); }
 .r-legend { --c: var(--legend); }
+.r-mythic { --c: var(--mythic); }
 .r-custom { --c: #ff6bd0; }
 .card .icon { font-size: 44px; }
 .card .name { font-size: 19px; font-weight: bold; margin: 6px 0; }
