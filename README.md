@@ -11,6 +11,16 @@ An offline 3D snake game (like slither.io / Snake Clash) with **collectible drag
 Built with plain JavaScript + [Three.js](https://threejs.org/) (3D) + [Vite](https://vitejs.dev/) (dev server).
 No internet needed once installed.
 
+## 🧩 Two versions
+
+| Version | Folder | How to run |
+| --- | --- | --- |
+| **Web** (JavaScript + Three.js) | `src/`, `index.html` | `npm install` then `npm start` (below) |
+| **Unity** (C#) | `unity/SerpentRogue/` | Open it in Unity Hub and press Play. See [`unity/README.md`](unity/README.md) |
+
+Both versions have the same features, and every C# file matches a JavaScript file, so you can
+compare how the same idea looks in each language.
+
 ## ▶️ Run it on your computer
 
 1. Install **Node.js** (LTS) from https://nodejs.org
