@@ -240,8 +240,8 @@ namespace SerpentRogue
                 int size = Mathf.Clamp(Mathf.RoundToInt((1.7f + r * 1.2f) * H / (1.04f * dist) * 0.42f), 8, 44);
                 style.fontSize = size;
                 float x = sp.x / scale, y = (Screen.height - sp.y) / scale;
-                Color c = s.isPlayer ? Toon.Hex("#ffe066") : Color.white;
-                Outlined(new Rect(x - 150, y - size * 2.2f, 300, size * 1.2f), "Lv" + Mathf.FloorToInt(s.mass), style, c);
+                Color c = s.LabelColor(); // red = bigger than you
+                Outlined(new Rect(x - 150, y - size * 2.2f, 300, size * 1.2f), (s.isBoss ? "BOSS Lv" : "Lv") + s.Lv, style, c);
                 Outlined(new Rect(x - 150, y - size * 1.05f, 300, size * 1.2f), s.name, style, c);
             }
         }
@@ -274,12 +274,19 @@ namespace SerpentRogue
             // Minimap
             float mm = 170, mx = W - mm - 14, my = H - mm - 14;
             GUI.DrawTexture(new Rect(mx, my, mm, mm), ring);
+            float lavaScale = (mm / 2 - 6) / Config.ArenaRadius;
+            GUI.color = Toon.Hex("#ff5a00");
+            foreach (var pool in g.pools)
+            {
+                float pr = pool.r * lavaScale;
+                GUI.DrawTexture(new Rect(mx + mm / 2 + pool.x * lavaScale - pr, my + mm / 2 - pool.z * lavaScale - pr, pr * 2, pr * 2), circle);
+            }
             float sc = (mm / 2 - 6) / Config.ArenaRadius;
             foreach (var s in g.snakes)
             {
                 bool me = s == p;
-                float rr = me ? 4 : 1.5f + Mathf.Sqrt(s.mass) / 6;
-                GUI.color = me ? Color.white : s.skin.A;
+                float rr = me ? 4 : s.isBoss ? 7 : 1.5f + Mathf.Sqrt(s.mass) / 6;
+                GUI.color = me ? Color.white : s.isBoss ? Color.red : s.skin.A;
                 // screen up = +z in the world
                 GUI.DrawTexture(new Rect(mx + mm / 2 + s.Head.x * sc - rr, my + mm / 2 - s.Head.z * sc - rr, rr * 2, rr * 2), circle);
             }
@@ -296,7 +303,24 @@ namespace SerpentRogue
                 GUI.Label(new Rect(cx, H - 44, w, 30), new GUIContent(t, u.name), chip);
                 cx += w + 6;
             }
-            GUI.Label(new Rect(0, H - 26, W, 20), "Mouse to steer  ·  Hold click / Space to boost  ·  Esc to pause", Sized(small, 12, null, TextAnchor.MiddleCenter));
+            GUI.Label(new Rect(0, H - 26, W, 20), "Mouse to steer  ·  Hold click / Space to boost  ·  Esc to pause  ·  RED Lv = bigger than you, run!", Sized(small, 12, null, TextAnchor.MiddleCenter));
+
+            // Boss countdown / boss info
+            string bossText;
+            Color bossBg;
+            if (g.boss != null)
+            {
+                bossText = "BOSS  " + g.boss.name + "  Lv" + g.boss.Lv + "  ·  leaves in " + Time2(Mathf.Max(0, g.bossLeft));
+                bossBg = new Color(0.47f, 0.04f, 0.08f, 0.9f);
+            }
+            else
+            {
+                float t = Mathf.Max(0, g.bossTimer);
+                bossText = "Boss in " + Time2(t);
+                bool warn = t <= Config.BossWarning && Mathf.Repeat(Time.unscaledTime, 0.6f) < 0.3f;
+                bossBg = warn ? new Color(0.6f, 0.1f, 0.1f, 0.9f) : new Color(0.06f, 0.09f, 0.18f, 0.85f);
+            }
+            GUI.Label(new Rect(W / 2 - 190, 14, 380, 36), bossText, Pill(bossBg, 15, Color.white));
         }
 
         void LeaderRow(float lx, float y, int i, Snake s, bool me)
@@ -334,8 +358,28 @@ namespace SerpentRogue
                 g.profile.Save();
             }
 
-            if (GUI.Button(new Rect(cx - 130, 364, 260, 54), "PLAY", bigBtn)) g.StartRun();
-            if (GUI.Button(new Rect(cx - 130, 428, 260, 46), "Skins   (" + (Config.UnlimitedCoins ? "unlimited" : g.profile.coins.ToString()) + " coins)", btn))
+            // Map picker: "Random" plus every map in Maps.cs.
+            int count = Maps.All.Count + 1;
+            int idx = 0;
+            for (int i = 0; i < Maps.All.Count; i++) if (Maps.All[i].id == g.profile.map) idx = i + 1;
+            int step = 0;
+            if (GUI.Button(new Rect(cx - 210, 358, 44, 52), "<", btn)) step = -1;
+            if (GUI.Button(new Rect(cx + 166, 358, 44, 52), ">", btn)) step = 1;
+            string mapName = idx == 0 ? "Random map" : Maps.All[idx - 1].name;
+            string mapDesc = idx == 0 ? "A different biome every run." : Maps.All[idx - 1].desc;
+            GUI.Box(new Rect(cx - 160, 358, 320, 52), "", panel);
+            GUI.Label(new Rect(cx - 160, 360, 320, 26), mapName, Sized(center, 17, Toon.Hex("#ffd25d")));
+            GUI.Label(new Rect(cx - 160, 384, 320, 22), mapDesc, Sized(small, 12, null, TextAnchor.MiddleCenter));
+            if (step != 0)
+            {
+                idx = (idx + step + count) % count;
+                g.profile.map = idx == 0 ? "random" : Maps.All[idx - 1].id;
+                g.profile.Save();
+                g.StartAttract(true); // preview the map behind the menu
+            }
+
+            if (GUI.Button(new Rect(cx - 130, 424, 260, 54), "PLAY", bigBtn)) g.StartRun();
+            if (GUI.Button(new Rect(cx - 130, 488, 260, 46), "Skins   (" + (Config.UnlimitedCoins ? "unlimited" : g.profile.coins.ToString()) + " coins)", btn))
             {
                 selected = g.profile.equipped;
                 SkinData sk = SelectedSkin();
@@ -343,18 +387,18 @@ namespace SerpentRogue
                 screen = UIScreen.Shop;
                 g.shop.Open(sk);
             }
-            if (GUI.Button(new Rect(cx - 130, 484, 260, 46), "How to Play", btn)) Show(UIScreen.HowTo);
+            if (GUI.Button(new Rect(cx - 130, 544, 260, 46), "How to Play", btn)) Show(UIScreen.HowTo);
 
             Profile pr = g.profile;
             string best = pr.bestLevel > 0
                 ? "Best run:  Power " + pr.bestLevel + "  ·  Length " + pr.bestLength + "  ·  Kills " + pr.bestKills + "  ·  " + Time2(pr.bestTime)
                 : "No runs yet. Go get eaten!";
-            GUI.Label(new Rect(cx - 300, 548, 600, 24), best, Sized(small, 14, null, TextAnchor.MiddleCenter));
+            GUI.Label(new Rect(cx - 300, 604, 600, 24), best, Sized(small, 14, null, TextAnchor.MiddleCenter));
         }
 
         void DrawHowTo()
         {
-            var r = new Rect(W / 2 - 330, 110, 660, 470);
+            var r = new Rect(W / 2 - 360, 40, 720, 640);
             GUI.Box(r, "", panel);
             GUI.Label(new Rect(r.x, r.y + 16, r.width, 40), "How to play", Sized(center, 28));
             string[] lines =
@@ -362,13 +406,14 @@ namespace SerpentRogue
                 "Your snake follows the MOUSE. Or use A / D (arrow keys) to turn.",
                 "Hold LEFT CLICK or SPACE to boost. Boosting burns length.",
                 "Eat glowing orbs to grow and earn XP. Golden orbs are worth 5x.",
-                "If your HEAD touches another snake's body, you die. Your own body is safe.",
-                "Make bots crash into YOUR body and eat what they drop.",
+                "Every snake shows its Lv (size). When two snakes touch, the HIGHER Lv eats the lower one, from any side!",
+                "RED labels are bigger than you: run! WHITE labels are smaller: hunt them.",
+                "Every few minutes a giant BOSS hunts you. Survive until it leaves, or grow big enough to eat it.",
                 "Every level up, pick 1 of 3 power-ups (keys 1 / 2 / 3, R = reroll).",
                 "Bots get bigger and meaner over time. How long can you last?",
                 "Every run earns coins. Spend them on new skins in the Skins shop.",
             };
-            for (int i = 0; i < lines.Length; i++) GUI.Label(new Rect(r.x + 36, r.y + 76 + i * 42, r.width - 72, 40), "•  " + lines[i], Sized(label, 16));
+            for (int i = 0; i < lines.Length; i++) GUI.Label(new Rect(r.x + 36, r.y + 76 + i * 50, r.width - 72, 46), "•  " + lines[i], Sized(label, 16));
             if (GUI.Button(new Rect(W / 2 - 80, r.yMax - 66, 160, 44), "Back", btn)) Show(UIScreen.Menu);
         }
 
@@ -426,7 +471,8 @@ namespace SerpentRogue
             StatCell(new Rect(r.x + 290, r.y + 176, 240, 84), "Survived", Time2(s.time), s.newBestTime);
             string ups = "";
             foreach (var kv in s.upgrades) ups += Upgrades.ById(kv.Key).name + (kv.Value > 1 ? " x" + kv.Value : "") + "    ";
-            GUI.Label(new Rect(r.x + 30, r.y + 274, r.width - 60, 60), ups.Length > 0 ? ups : "No power-ups this run.", Sized(center, 13, Toon.Hex("#9aa5d6")));
+            GUI.Label(new Rect(r.x + 30, r.y + 268, r.width - 60, 50), ups.Length > 0 ? ups : "No power-ups this run.", Sized(center, 13, Toon.Hex("#9aa5d6")));
+            GUI.Label(new Rect(r.x, r.y + 318, r.width, 22), "Map: " + s.mapName + "   ·   Bosses eaten: " + s.bossKills, Sized(center, 13, Toon.Hex("#9aa5d6")));
             GUI.Label(new Rect(r.x, r.y + 340, r.width, 30), "+" + s.coins + " coins for the skin shop", Sized(center, 20, Toon.Hex("#ffd25d")));
             if (GUI.Button(new Rect(W / 2 - 130, r.y + 392, 260, 52), "Play again", bigBtn)) g.StartRun();
             if (GUI.Button(new Rect(W / 2 - 130, r.y + 454, 260, 46), "Menu", btn)) g.GoMenu();
@@ -499,7 +545,7 @@ namespace SerpentRogue
             // Right: tabs + grid / custom editor
             float rx = leftW + 4, rw = W - rx - 16;
             GUI.Box(new Rect(rx, 70, rw, H - 86), "", Pill(Toon.Hex("#2f64e0"), 1, Color.white));
-            string[] tabs = { "common", "rare", "epic", "legend", "custom" };
+            string[] tabs = { "common", "rare", "epic", "legend", "mythic", "custom" };
             float tw = (rw - 20) / tabs.Length;
             for (int i = 0; i < tabs.Length; i++)
             {

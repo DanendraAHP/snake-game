@@ -17,6 +17,8 @@ namespace SerpentRogue
         public string head = "dragon", body = "scales", spikes = "spikes", pattern = "solid", eyes = "normal", hat = "none";
         public bool glow;
         public string colorA = "#3bd16f", colorB = "#17703f", colorC = "#d8ff6b", eyeColor = "#ffd23d";
+        public bool belly;                       // a 2nd-color underside (Shenron)
+        public string spikeColor = "", maneColor = ""; // optional, default to colorC
 
         public SkinData Clone() { return (SkinData)MemberwiseClone(); }
         public string ShapeKey { get { return head + "|" + hat + "|" + eyes; } }
@@ -24,6 +26,8 @@ namespace SerpentRogue
         public Color B { get { return Toon.Hex(colorB); } }
         public Color C { get { return Toon.Hex(colorC); } }
         public Color Eye { get { return Toon.Hex(eyeColor); } }
+        public Color Spike { get { return Toon.Hex(string.IsNullOrEmpty(spikeColor) ? colorC : spikeColor); } }
+        public Color Mane { get { return Toon.Hex(string.IsNullOrEmpty(maneColor) ? colorC : maneColor); } }
     }
 
     [Serializable]
@@ -33,6 +37,7 @@ namespace SerpentRogue
         public int coins = Config.StartCoins;
         public List<string> owned = new List<string> { "jungle" };
         public string equipped = "jungle";
+        public string map = "neon";
         public SkinData custom;
         public int bestLevel, bestLength, bestKills;
         public float bestTime;
@@ -69,13 +74,13 @@ namespace SerpentRogue
 
     public static class Skins
     {
-        public static readonly string[][] Heads = { new[] { "dragon", "Dragon" }, new[] { "viper", "Viper" }, new[] { "round", "Cute" } };
-        public static readonly string[][] Bodies = { new[] { "scales", "Scales" }, new[] { "blocky", "Blocky" }, new[] { "smooth", "Smooth" } };
-        public static readonly string[][] Backs = { new[] { "none", "None" }, new[] { "spikes", "Spikes" }, new[] { "fins", "Flame Fins" }, new[] { "plates", "Plates" } };
+        public static readonly string[][] Heads = { new[] { "dragon", "Dragon" }, new[] { "viper", "Viper" }, new[] { "round", "Cute" }, new[] { "bone", "Bone Skull" }, new[] { "block", "Blocky" }, new[] { "eastern", "Eastern" } };
+        public static readonly string[][] Bodies = { new[] { "scales", "Scales" }, new[] { "blocky", "Blocky" }, new[] { "smooth", "Smooth" }, new[] { "bone", "Bone" }, new[] { "cube", "Cube" } };
+        public static readonly string[][] Backs = { new[] { "none", "None" }, new[] { "spikes", "Spikes" }, new[] { "fins", "Flame Fins" }, new[] { "plates", "Plates" }, new[] { "ribs", "Bone Spikes" }, new[] { "cubes", "Cubes" } };
         public static readonly string[][] Patterns = { new[] { "solid", "Solid" }, new[] { "stripes", "Stripes" }, new[] { "bands", "Bands" }, new[] { "spots", "Spots" }, new[] { "gradient", "Gradient" }, new[] { "rainbow", "Rainbow" } };
         public static readonly string[][] Eyes = { new[] { "normal", "Normal" }, new[] { "cute", "Cute" }, new[] { "angry", "Angry" }, new[] { "cyclops", "Cyclops" } };
-        public static readonly string[][] Hats = { new[] { "none", "None" }, new[] { "crown", "Crown" }, new[] { "horns", "Horns" }, new[] { "ears", "Jackal Ears" }, new[] { "halo", "Halo" }, new[] { "tophat", "Top Hat" } };
-        public static readonly string[] Rarities = { "common", "rare", "epic", "legend" };
+        public static readonly string[][] Hats = { new[] { "none", "None" }, new[] { "crown", "Crown" }, new[] { "horns", "Horns" }, new[] { "ears", "Jackal Ears" }, new[] { "halo", "Halo" }, new[] { "tophat", "Top Hat" }, new[] { "mane", "Wild Mane" } };
+        public static readonly string[] Rarities = { "common", "rare", "epic", "legend", "mythic" };
 
         static SkinData S(string id, string label, string rarity, int price, Action<SkinData> setup)
         {
@@ -101,7 +106,19 @@ namespace SerpentRogue
             S("sakura", "Sakura", "epic", 2000, s => { s.spikes = "fins"; s.pattern = "gradient"; s.colorA = "#ff9ccf"; s.colorB = "#fff0f6"; s.colorC = "#ffc83d"; s.eyeColor = "#ff4d8d"; }),
             S("anubis", "Anubis", "legend", 5000, s => { s.body = "blocky"; s.spikes = "plates"; s.hat = "ears"; s.colorA = "#2a2a33"; s.colorB = "#3a3a46"; s.colorC = "#ffc83d"; s.eyeColor = "#ffae00"; }),
             S("inferno", "Inferno King", "legend", 5500, s => { s.spikes = "fins"; s.pattern = "gradient"; s.hat = "crown"; s.glow = true; s.colorA = "#ffd23d"; s.colorB = "#ff2a00"; s.colorC = "#ff6a00"; s.eyeColor = "#ff2a00"; }),
+            // Mythic: inspired by famous dragons.
+            S("zabimaru", "Zabimaru", "mythic", 9000, s => { s.head = "bone"; s.body = "bone"; s.spikes = "ribs"; s.hat = "mane"; s.pattern = "stripes"; s.colorA = "#efe6cf"; s.colorB = "#cdb88f"; s.colorC = "#efe6cf"; s.spikeColor = "#e8dcc0"; s.maneColor = "#d2232a"; s.eyeColor = "#ffd400"; }),
+            S("ender", "Ender Dragon", "mythic", 9500, s => { s.head = "block"; s.body = "cube"; s.spikes = "cubes"; s.pattern = "stripes"; s.colorA = "#1d1d24"; s.colorB = "#2b2b35"; s.colorC = "#5d5d68"; s.spikeColor = "#70707c"; s.eyeColor = "#e04dff"; }),
+            S("shenron", "Shenron", "mythic", 10000, s => { s.head = "eastern"; s.belly = true; s.colorA = "#2f9e44"; s.colorB = "#f0a040"; s.colorC = "#d1a868"; s.spikeColor = "#1f6b2e"; s.maneColor = "#1f6b2e"; s.eyeColor = "#ff2a2a"; }),
             S("void", "Void Leviathan", "legend", 6000, s => { s.spikes = "fins"; s.pattern = "gradient"; s.glow = true; s.colorA = "#8a2be2"; s.colorB = "#140a26"; s.colorC = "#ff3bd4"; s.eyeColor = "#ff3bd4"; }),
+        };
+
+        // Boss-only skins (not sold in the shop).
+        public static readonly List<SkinData> BossSkins = new List<SkinData>
+        {
+            S("boss_wyrm", "Crimson Wyrm", "boss", 0, s => { s.spikes = "fins"; s.pattern = "gradient"; s.hat = "crown"; s.glow = true; s.colorA = "#c4001d"; s.colorB = "#2a0008"; s.colorC = "#ffd23d"; s.eyeColor = "#ffe600"; }),
+            S("boss_tyrant", "Bone Tyrant", "boss", 0, s => { s.head = "bone"; s.body = "bone"; s.spikes = "ribs"; s.hat = "horns"; s.pattern = "bands"; s.colorA = "#3a3a3a"; s.colorB = "#e8dcc0"; s.colorC = "#e8dcc0"; s.spikeColor = "#e8dcc0"; s.eyeColor = "#ff2a00"; }),
+            S("boss_leviathan", "Abyss Leviathan", "boss", 0, s => { s.head = "eastern"; s.spikes = "fins"; s.belly = true; s.glow = true; s.pattern = "gradient"; s.colorA = "#102a8f"; s.colorB = "#00e5ff"; s.colorC = "#7af7ff"; s.spikeColor = "#00e5ff"; s.maneColor = "#00e5ff"; s.eyeColor = "#ffffff"; }),
         };
 
         public static SkinData ById(string id)
@@ -124,6 +141,8 @@ namespace SerpentRogue
                 case "rare": return Toon.Hex("#4fa9ff");
                 case "epic": return Toon.Hex("#c76bff");
                 case "legend": return Toon.Hex("#ffb020");
+                case "mythic": return Toon.Hex("#ff3b6b");
+                case "boss": return Toon.Hex("#ff2020");
                 case "custom": return Toon.Hex("#ff6bd0");
                 default: return Toon.Hex("#9aa5d6");
             }

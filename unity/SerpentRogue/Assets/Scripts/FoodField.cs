@@ -24,6 +24,7 @@ namespace SerpentRogue
         public readonly List<Food> items = new List<Food>();
         public readonly SpatialHash<Food> grid = new SpatialHash<Food>(4);
         int natural;
+        public System.Func<float, float, bool> blocked; // e.g. "is this inside lava?" 
 
         readonly Mesh mesh;
         readonly Material material;
@@ -59,17 +60,22 @@ namespace SerpentRogue
 
         public void SpawnRandom(float goldenChance)
         {
-            float r = Config.ArenaRadius * 0.97f * Mathf.Sqrt(Random.value);
-            float a = Random.value * Mathf.PI * 2;
+            float r = 0, a = 0;
+            for (int tries = 0; tries < 10; tries++)
+            {
+                r = Config.ArenaRadius * 0.97f * Mathf.Sqrt(Random.value);
+                a = Random.value * Mathf.PI * 2;
+                if (blocked == null || !blocked(Mathf.Cos(a) * r, Mathf.Sin(a) * r)) break;
+            }
             bool golden = Random.value < goldenChance;
             float value = golden ? 5 : (Random.value < 0.15f ? 2 : 1);
             Spawn(Mathf.Cos(a) * r, Mathf.Sin(a) * r, value, null, true, golden);
         }
 
         // Keep the map stocked with food.
-        public void Maintain(float goldenChance)
+        public void Maintain(float goldenChance, float target)
         {
-            for (int i = 0; i < 25 && natural < Config.FoodCount; i++) SpawnRandom(goldenChance);
+            for (int i = 0; i < 25 && natural < target; i++) SpawnRandom(goldenChance);
         }
 
         public void RebuildGrid()

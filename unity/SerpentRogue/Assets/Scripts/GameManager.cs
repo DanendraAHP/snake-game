@@ -23,6 +23,18 @@ namespace SerpentRogue
         public readonly SpatialHash<Seg> segGrid = new SpatialHash<Seg>(3);
         public float maxSegRadius = 1;
 
+        // Current map / biome
+        public MapDef map;
+        public readonly List<LavaPool> pools = new List<LavaPool>();
+        GameObject mapRoot;
+        Material lavaMat;
+
+        // Bosses
+        public Snake boss;
+        public float bossTimer, bossLeft;
+        public int bossCount, bossKills;
+        bool bossWarned;
+
         public GameState state = GameState.Attract;
         public bool paused, choosing;
         public float time, runTime, threat = 1;
@@ -52,8 +64,9 @@ namespace SerpentRogue
             cam.farClipPlane = 700;
             cam.transform.position = new Vector3(0, 80, -80);
 
-            BuildArena();
             food = new FoodField();
+            food.blocked = (x, z) => InLava(x, z, 2);
+            SetMap(Maps.Get(profile.map));
             particles = new Particles();
             ui = gameObject.AddComponent<GameUI>();
             shop = gameObject.AddComponent<ShopStage>();
@@ -61,49 +74,43 @@ namespace SerpentRogue
         }
 
         // ------------------------------------------------------------------ world
-        void BuildArena()
+        // Switch to a map/biome (see Maps.cs): rebuilds floor, wall, decorations and lava.
+        public void SetMap(MapDef m)
         {
-            float R = Config.ArenaRadius;
-            var arena = new GameObject("Arena").transform;
-
-            // Dark floor with little "+" marks, like Snake Clash.
-            var tex = new Texture2D(64, 64) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear };
-            Color bg = Toon.Hex("#262a35"), mark = Toon.Hex("#323746");
-            for (int y = 0; y < 64; y++)
-                for (int x = 0; x < 64; x++)
-                {
-                    bool plus = (Mathf.Abs(x - 32) <= 1 && Mathf.Abs(y - 32) <= 5) || (Mathf.Abs(y - 32) <= 1 && Mathf.Abs(x - 32) <= 5);
-                    tex.SetPixel(x, y, plus ? mark : bg);
-                }
-            tex.Apply();
-            var floorMat = Toon.Make(Color.white, 1);
-            floorMat.SetTexture("_MainTex", tex);
-            Spawn("Floor", MeshFactory.Disc(R + 60, 128, 1 / 6f), floorMat, arena);
-
-            Spawn("Outside", MeshFactory.Ring(R, R + 60, 128), Toon.Make(Toon.Hex("#3a0d1c"), 1), arena).transform.position = Vector3.up * 0.03f;
-            var rim = Spawn("Rim", MeshFactory.Torus(R, 0.35f, 220, 8), Toon.Make(Toon.Hex("#ff6b8a"), 1), arena);
-            rim.transform.rotation = Quaternion.Euler(90, 0, 0);
-            rim.transform.position = Vector3.up * 0.4f;
-
-            // Decorative glowing crystals outside the arena.
-            Mesh crystal = MeshFactory.Cone(1, 2, 4);
-            for (int i = 0; i < 50; i++)
-            {
-                float a = Random.value * Mathf.PI * 2, d = R + 8 + Random.value * 40, s = 1.5f + Random.value * 4;
-                var c = Spawn("Crystal", crystal, Toon.Make(Color.HSVToRGB(0.5f + Random.value * 0.4f, 0.7f, 1f), 0.4f), arena);
-                c.transform.position = new Vector3(Mathf.Cos(a) * d, s * 0.8f, Mathf.Sin(a) * d);
-                c.transform.localScale = new Vector3(s * 0.6f, s * 0.8f, s * 0.6f);
-                c.transform.rotation = Quaternion.Euler(0, Random.value * 360, 0);
-            }
+            if (mapRoot != null) DestroyMap(mapRoot);
+            map = m;
+            Config.ArenaRadius = m.radius;
+            mapRoot = Maps.Build(m, pools, out lavaMat);
+            cam.backgroundColor = Toon.Hex(m.bg);
         }
 
-        GameObject Spawn(string name, Mesh mesh, Material mat, Transform parent)
+        // Frees the meshes, materials and textures made for the old map.
+        static void DestroyMap(GameObject root)
         {
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
-            return go;
+            var done = new HashSet<Object>();
+            foreach (var mf in root.GetComponentsInChildren<MeshFilter>())
+                if (done.Add(mf.sharedMesh)) Destroy(mf.sharedMesh);
+            foreach (var mr in root.GetComponentsInChildren<MeshRenderer>())
+            {
+                Material mat = mr.sharedMaterial;
+                if (mat == null || !done.Add(mat)) continue;
+                Texture tex = mat.HasProperty("_MainTex") ? mat.GetTexture("_MainTex") : null;
+                if (tex != null && done.Add(tex)) Destroy(tex);
+                Destroy(mat);
+            }
+            root.SetActive(false);
+            Destroy(root);
+        }
+
+        // Is the circle (x, z, margin) touching a lava pool?
+        public bool InLava(float x, float z, float margin = 0)
+        {
+            foreach (var p in pools)
+            {
+                float dx = x - p.x, dz = z - p.z, r = p.r + margin;
+                if (dx * dx + dz * dz < r * r) return true;
+            }
+            return false;
         }
 
         void ClearWorld()
@@ -113,7 +120,11 @@ namespace SerpentRogue
             player = null;
             food.Clear();
             particles.Clear();
-            for (int i = 0; i < Config.FoodCount; i++) food.SpawnRandom(0.01f);
+            for (int i = 0; i < Config.FoodCount * map.foodMul; i++) food.SpawnRandom(0.01f);
+            boss = null;
+            bossCount = bossKills = 0;
+            bossTimer = Config.BossFirst;
+            bossWarned = false;
             respawnQueue.Clear();
             runTime = 0;
             threat = 1;
@@ -122,8 +133,9 @@ namespace SerpentRogue
             pendingLevels = 0;
         }
 
-        public void StartAttract()
+        public void StartAttract(bool newMap = false)
         {
+            if (newMap) SetMap(Maps.Get(profile.map));
             ClearWorld();
             state = GameState.Attract;
             for (int i = 0; i < Config.BotCount; i++) SpawnBot();
@@ -131,6 +143,7 @@ namespace SerpentRogue
 
         public void StartRun()
         {
+            SetMap(Maps.Get(profile.map));
             ClearWorld();
             state = GameState.Playing;
             var p = new Snake(this, profile.EquippedSkin(), profile.name, 0, 0, Random.value * Mathf.PI * 2, Config.StartMass, true);
@@ -141,6 +154,7 @@ namespace SerpentRogue
             snakes.Add(p);
             for (int i = 0; i < Config.BotCount; i++) SpawnBot();
             ui.Show(UIScreen.Hud);
+            ui.Toast(map.name + ": " + map.desc);
         }
 
         void SpawnBot()
@@ -153,8 +167,10 @@ namespace SerpentRogue
                 z = Mathf.Sin(a) * r;
                 if (player == null || !player.alive || Vector2.Distance(new Vector2(x, z), new Vector2(player.Head.x, player.Head.z)) > 35) break;
             }
-            // Bots spawn bigger as the run goes on: the "threat" ramps up.
-            float mass = Config.StartMass + Random.value * 25 * threat + (threat - 1) * 30;
+            // Bots spawn around YOUR size (some smaller = food, some bigger = danger),
+            // and a bit bigger as the run goes on: the "threat" ramps up.
+            float baseMass = player != null && player.alive ? player.mass : 30;
+            float mass = Mathf.Max(8, baseMass * (0.35f + Random.value * 1.0f)) * (1 + (threat - 1) * 0.15f);
             var bot = new Snake(this, Skins.RandomBotSkin(), Skins.RandomBotName(), x, z, Random.value * Mathf.PI * 2, mass, false);
             bot.brain = new BotBrain(bot, this);
             bot.invuln = 1;
@@ -218,9 +234,12 @@ namespace SerpentRogue
                 }
             }
 
-            float goldenChance = 0.01f + (player != null && player.alive ? player.stats.goldenBonus : 0);
+            if (state == GameState.Playing) UpdateBoss(dt);
+
+            float goldenChance = 0.01f + map.goldenBonus + (player != null && player.alive ? player.stats.goldenBonus : 0);
             food.Compact();
-            food.Maintain(goldenChance);
+            food.Maintain(goldenChance, Config.FoodCount * map.foodMul);
+            if (lavaMat != null) lavaMat.SetColor("_Color", Color.HSVToRGB(0.06f + Mathf.Sin(time * 2) * 0.015f, 1, 1));
             particles.Update(dt);
 
             // Roguelite level-up: pause and offer a choice.
@@ -287,23 +306,33 @@ namespace SerpentRogue
             float hr = s.Radius * 0.9f, R = Config.ArenaRadius;
             bool safe = s.invuln > 0 || s.phase > 0;
 
-            // The wall.
+            // The wall and lava pools.
             float dc = Mathf.Sqrt(hx * hx + hz * hz);
-            if (dc + hr > R)
+            bool inLava = InLava(hx, hz, -0.3f);
+            if (dc + hr > R || inLava)
             {
                 if (safe)
                 {
-                    float k = (R - hr - s.Radius - 0.1f) / dc;
-                    seg0.x *= k;
-                    seg0.z *= k;
-                    s.angle = s.targetAngle = Mathf.Atan2(-seg0.z, -seg0.x);
+                    if (inLava) s.angle = s.targetAngle = s.angle + Mathf.PI;
+                    else
+                    {
+                        float k = (R - hr - s.Radius - 0.1f) / dc;
+                        seg0.x *= k;
+                        seg0.z *= k;
+                        s.angle = s.targetAngle = Mathf.Atan2(-seg0.z, -seg0.x);
+                    }
                 }
-                else Hit(s, null);
+                else
+                {
+                    if (inLava && s.isPlayer) ui.Toast("Burned in lava!");
+                    Hit(s, null);
+                }
                 return;
             }
-            if (safe) return;
+            if (s.phase > 0) return; // phased snakes pass through everything
 
-            // Other snakes' bodies (your own body is safe, like slither.io).
+            // Touching another snake: the HIGHER Lv eats the lower one, from any side.
+            Snake other = null;
             segGrid.Query(hx, hz, hr + maxSegRadius, segBuffer);
             foreach (Seg seg in segBuffer)
             {
@@ -311,16 +340,27 @@ namespace SerpentRogue
                 if (o == s || !o.alive || o.phase > 0) continue;
                 float rr = hr + o.Radius * 0.85f;
                 float dx = seg.x - hx, dz = seg.z - hz;
-                if (dx * dx + dz * dz < rr * rr)
-                {
-                    if (seg.idx == 0 && s.mass > o.mass) continue; // head-on: the bigger snake wins
-                    Hit(s, o);
-                    return;
-                }
+                if (dx * dx + dz * dz < rr * rr) { other = o; break; }
+            }
+            if (other == null) return;
+            if (s.Lv > other.Lv)
+            {
+                if (other.invuln <= 0) Hit(other, s, true); // chomp!
+            }
+            else if (s.Lv < other.Lv)
+            {
+                if (!safe) Hit(s, other, true);
+            }
+            else
+            {
+                // Same Lv: bounce off each other.
+                s.angle = s.targetAngle = s.angle + Mathf.PI;
+                s.invuln = Mathf.Max(s.invuln, 0.4f);
             }
         }
 
-        void Hit(Snake s, Snake killer)
+        // Something fatal happened to `s`. Shields and Second Wind can save it.
+        void Hit(Snake s, Snake killer, bool eaten = false)
         {
             if (s.shields > 0)
             {
@@ -343,6 +383,7 @@ namespace SerpentRogue
             }
             s.alive = false;
             s.killer = killer;
+            s.eaten = eaten;
         }
 
         void OnDeath(Snake s)
@@ -350,10 +391,19 @@ namespace SerpentRogue
             s.handled = true;
             Snake killer = s.killer;
 
-            // The body turns into food, colored like the dead snake.
+            // Eaten: the eater swallows a big part of it right away.
+            if (s.eaten && killer != null && killer.alive)
+            {
+                killer.Grow(s.mass * (killer.isPlayer ? Config.EatAbsorb : Config.BotEatAbsorb));
+                killer.chomp = 0.22f;
+                particles.Burst(s.Head.x, s.Head.z, Color.white, 25, 9);
+            }
+
+            // The (rest of the) body turns into food, colored like the dead snake.
             int n = s.segments.Count;
             int drops = Mathf.CeilToInt(n / 2f);
-            float total = s.mass * Config.DeathDropRatio * (killer != null ? killer.stats.dropMul : 1);
+            float ratio = s.eaten ? Config.EatDrop : Config.DeathDropRatio;
+            float total = s.mass * ratio * (killer != null ? killer.stats.dropMul : 1);
             float per = Mathf.Max(0.5f, total / drops);
             Color a = s.skin.A, b = s.skin.B;
             for (int i = 0; i < n; i += 2)
@@ -371,12 +421,13 @@ namespace SerpentRogue
                 {
                     GainXp((15 + s.mass * 0.25f) * killer.stats.killXpMul);
                     if (killer.upgrades.ContainsKey("predator")) killer.Grow(s.mass * 0.15f);
-                    ui.Toast("You defeated " + s.name + "!");
+                    if (!s.isBoss) ui.Toast("You ate " + s.name + "!");
                 }
             }
 
             s.Destroy();
-            if (s.isPlayer) GameOver();
+            if (s.isBoss) OnBossDefeated(s, killer);
+            else if (s.isPlayer) GameOver();
             else respawnQueue.Add(2 + Random.value * 2);
         }
 
@@ -441,8 +492,10 @@ namespace SerpentRogue
                 time = runTime,
                 upgrades = new Dictionary<string, int>(p.upgrades),
             };
+            stats.bossKills = bossKills;
+            stats.mapName = map.name;
             // Coins for the skin shop: bigger, longer, deadlier runs earn more.
-            stats.coins = Mathf.RoundToInt(p.maxMass / 4 + p.kills * 15 + p.level * 10 + runTime / 6);
+            stats.coins = Mathf.RoundToInt(p.maxMass / 4 + p.kills * 15 + p.level * 10 + runTime / 6 + bossKills * 150);
             stats.newBestLevel = stats.level > profile.bestLevel;
             stats.newBestLength = stats.length > profile.bestLength;
             stats.newBestKills = stats.kills > profile.bestKills;
@@ -459,8 +512,80 @@ namespace SerpentRogue
 
         public void GoMenu()
         {
-            StartAttract();
+            StartAttract(true);
             ui.Show(UIScreen.Menu);
+        }
+
+        // ------------------------------------------------------------------ bosses
+        void UpdateBoss(float dt)
+        {
+            Snake p = player;
+            if (p == null || !p.alive) return;
+            if (boss == null)
+            {
+                bossTimer -= dt;
+                if (!bossWarned && bossTimer <= Config.BossWarning)
+                {
+                    bossWarned = true;
+                    ui.Toast("A BOSS is coming! Grow fast or stay away!");
+                }
+                if (bossTimer <= 0) SpawnBoss();
+                return;
+            }
+            bossLeft -= dt;
+            if (bossLeft <= 0)
+            {
+                // You survived: the boss gives up and leaves.
+                Snake b = boss;
+                particles.Burst(b.Head.x, b.Head.z, b.skin.A, 60, 14);
+                b.alive = false;
+                b.handled = true;
+                b.Destroy();
+                snakes.Remove(b);
+                boss = null;
+                bossTimer = Config.BossInterval;
+                bossWarned = false;
+                GainXp(25 + bossCount * 10);
+                ui.Toast("You survived " + b.name + "! Bonus XP!");
+            }
+        }
+
+        void SpawnBoss()
+        {
+            Snake p = player;
+            float R = Config.ArenaRadius;
+            // Come in from the far side of the map.
+            float a = Mathf.Atan2(-p.Head.z, -p.Head.x) + (Random.value - 0.5f);
+            float x = Mathf.Cos(a) * R * 0.75f, z = Mathf.Sin(a) * R * 0.75f;
+            SkinData skin = Skins.BossSkins[bossCount % Skins.BossSkins.Count];
+            // Always much bigger than you, and each boss bigger than the last.
+            float mass = Mathf.Max(180, p.mass * 1.8f) * (1 + bossCount * 0.25f);
+            var b = new Snake(this, skin, skin.label, x, z, a + Mathf.PI, mass, false);
+            b.isBoss = true;
+            b.noGrow = true;
+            b.stats.sizeMul = 1.2f;
+            b.stats.speedMul = 0.92f;
+            b.invuln = 2;
+            b.brain = new BotBrain(b, this, true);
+            snakes.Add(b);
+            boss = b;
+            bossCount++;
+            bossLeft = Config.BossStay;
+            particles.Burst(x, z, skin.A, 80, 16);
+            ui.Toast("BOSS: " + skin.label + " (Lv" + b.Lv + ") appeared!");
+        }
+
+        void OnBossDefeated(Snake b, Snake killer)
+        {
+            boss = null;
+            bossTimer = Config.BossInterval;
+            bossWarned = false;
+            if (killer != null && killer.isPlayer)
+            {
+                bossKills++;
+                GainXp(80 + b.Lv * 0.2f);
+                ui.Toast("You ate the boss " + b.name + "! +150 coins at the end!");
+            }
         }
 
         // ------------------------------------------------------------------ camera
@@ -493,5 +618,7 @@ namespace SerpentRogue
         public float time;
         public Dictionary<string, int> upgrades;
         public bool newBestLevel, newBestLength, newBestKills, newBestTime;
+        public int bossKills;
+        public string mapName;
     }
 }

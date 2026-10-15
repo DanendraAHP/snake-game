@@ -29,6 +29,9 @@ namespace SerpentRogue
         public int level = 1, rerolls;
         public float xp, xpNext;
 
+        public bool isBoss, noGrow; // bosses keep their size
+        public bool eaten;
+
         public BotBrain brain;
         public readonly List<Seg> segments = new List<Seg>();
         public readonly SnakeModel model;
@@ -50,6 +53,8 @@ namespace SerpentRogue
         public float Radius { get { return Config.BaseRadius * (1 + Mathf.Sqrt(Mathf.Max(0, mass)) / 12f) * stats.sizeMul; } }
         public float Spacing { get { return Radius * 0.75f; } }
         public Seg Head { get { return segments[0]; } }
+        // The "Lv" shown above every snake. Higher Lv eats lower Lv on touch.
+        public int Lv { get { return Mathf.FloorToInt(mass); } }
 
         int TargetSegments() { return Mathf.Min(Config.MaxSegments, Mathf.FloorToInt(6 + mass * 0.5f)); }
 
@@ -61,6 +66,7 @@ namespace SerpentRogue
         public void Grow(float amount)
         {
             if (amount > 0 && chomp <= 0) chomp = 0.22f;
+            if (noGrow && amount > 0) return;
             mass += amount;
             maxMass = Mathf.Max(maxMass, mass);
         }
@@ -81,7 +87,8 @@ namespace SerpentRogue
             }
 
             // --- Steering: turn toward targetAngle, limited by turn rate ---
-            float turnRate = Config.TurnRate * stats.turnMul / (1 + (Radius - Config.BaseRadius) * 0.35f);
+            MapDef map = game.map;
+            float turnRate = Config.TurnRate * stats.turnMul * map.turnMul / (1 + (Radius - Config.BaseRadius) * 0.35f);
             float diff = Mathf.DeltaAngle(angle * Mathf.Rad2Deg, targetAngle * Mathf.Rad2Deg) * Mathf.Deg2Rad;
             float maxTurn = turnRate * dt;
             angle += Mathf.Clamp(diff, -maxTurn, maxTurn);
@@ -94,7 +101,7 @@ namespace SerpentRogue
                 phase = 1.2f;
                 phantomCooldown = 8;
             }
-            float speed = Config.BaseSpeed * stats.speedMul;
+            float speed = Config.BaseSpeed * stats.speedMul * map.speedMul;
             if (boosting)
             {
                 speed *= Config.BoostMultiplier * stats.boostMul;
@@ -149,6 +156,16 @@ namespace SerpentRogue
                 phase = phase > 0,
                 invuln = invuln > 0,
             });
+        }
+
+        // Yellow = you. Red = bigger than you (it can eat you!). White = you can eat it.
+        public Color LabelColor()
+        {
+            if (isPlayer) return Toon.Hex("#ffe066");
+            if (isBoss) return Toon.Hex("#ff3b3b");
+            Snake p = game.player;
+            if (p != null && p.alive && Lv >= p.Lv) return Toon.Hex("#ff7a7a");
+            return Color.white;
         }
 
         public void Destroy() { model.Destroy(); }

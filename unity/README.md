@@ -4,6 +4,10 @@ The same game as the web version (3D dragon snakes, bots, roguelite power-ups, s
 rebuilt in **Unity + C#**. Everything is created from code when you press Play, so there is
 **nothing to set up by hand**: no prefabs, no scene objects, no Inspector wiring.
 
+Included: the Snake Clash eating rule (higher Lv eats lower Lv on any touch), 6 maps/biomes with
+their own twist (pick one on the menu), a boss every few minutes, and Mythic skins
+(Zabimaru, Ender Dragon, Shenron).
+
 ## ▶️ How to open and play
 
 1. Install **Unity Hub**: https://unity.com/download
@@ -46,7 +50,8 @@ Each C# file matches a file of the web version, so you can compare them side by 
 | --- | --- | --- |
 | `Config.cs` | `config.js` | All tuning numbers. **Start experimenting here.** |
 | `Bootstrap.cs` | `main.js` | Starts the game automatically when you press Play. |
-| `GameManager.cs` | `game.js` | Main loop, arena, camera, eating, collisions, deaths, level-ups, coins. |
+| `GameManager.cs` | `game.js` | Main loop, camera, eating, collisions, deaths, level-ups, bosses, coins. |
+| `Maps.cs` | `maps.js` | The maps/biomes: floor textures, decorations, lava pools, gameplay twists. |
 | `Snake.cs` | `snake.js` | Snake rules: steering, boosting, body following, growing. |
 | `SnakeModel.cs` | `model.js` | Draws a snake. The body uses **GPU instancing** (`Graphics.DrawMeshInstanced`). |
 | `HeadBuilder.cs` | `heads.js` | Builds dragon / viper / cute heads and hats from simple shapes. |

@@ -5,7 +5,7 @@ namespace SerpentRogue
     // All the "feel" numbers of the game live here. Tweak them and press Play!
     public static class Config
     {
-        public const float ArenaRadius = 140f;   // size of the circular map
+        public static float ArenaRadius = 140f;  // size of the circular map (set by the current map)
         public const int BotCount = 12;          // AI snakes alive at once
         public const int FoodCount = 650;        // natural food kept on the map
         public const int FoodCapacity = 2600;    // hard limit incl. food dropped by dead snakes
@@ -23,6 +23,17 @@ namespace SerpentRogue
 
         public const float BaseMagnet = 1.2f;    // every snake slightly attracts nearby food
         public const float DeathDropRatio = 0.8f; // how much of a dead snake turns into food
+
+        // Snake Clash rule: a snake with a HIGHER Lv eats a lower one on any touch.
+        public const float EatAbsorb = 0.5f;      // the player instantly gains this much of the victim
+        public const float BotEatAbsorb = 0.35f;  // bots absorb less, so they don't snowball as fast
+        public const float EatDrop = 0.3f;        // spilled as food around the victim
+
+        // Bosses
+        public const float BossFirst = 90;     // seconds until the first boss
+        public const float BossInterval = 150; // seconds between bosses
+        public const float BossWarning = 10;   // warning this many seconds before
+        public const float BossStay = 75;      // the boss leaves after this long if you survive
         public const int StartRerolls = 2;
         public const int StartCoins = 300;
 

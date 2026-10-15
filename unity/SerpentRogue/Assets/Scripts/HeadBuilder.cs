@@ -103,6 +103,69 @@ namespace SerpentRogue
             return 0.75f;
         }
 
+        // Bone skull with stripes and huge teeth (inspired by Zabimaru).
+        static float Bone(PartBuilder up, PartBuilder jaw)
+        {
+            up.Add("skin", RB(1.5f, 1.0f, 1.4f, 0.3f), V(0, 0.15f, 0));
+            up.Add("skin", RB(1.7f, 0.55f, 1.0f, 0.2f), V(1.2f, 0.02f, 0));
+            foreach (float x in new[] { -0.35f, 0.05f, 0.45f, 1.0f, 1.4f })
+                up.Add("dark", MeshFactory.Box(0.13f, 0.05f, x > 0.8f ? 0.7f : 1.0f), V(x, x > 0.8f ? 0.31f : 0.67f, 0), V(0, 0.35f, 0), Vector3.one, false);
+            foreach (int side in new[] { 1, -1 })
+            {
+                up.Add("dark", sphere, V(0.42f, 0.45f, side * 0.52f), Vector3.zero, V(0.32f, 0.3f, 0.2f), false); // eye socket
+                for (int k = 0; k < 5; k++) up.Add("white", tooth, V(0.55f + k * 0.32f, -0.32f, side * 0.4f), Down, V(1.4f, 1.5f, 1.4f), false);
+            }
+            Eyes(up, 0.45f, 0.45f, 0.56f, 0.24f);
+            jaw.Add("belly", RB(2.0f, 0.3f, 0.95f, 0.12f), V(1.0f, -0.15f, 0));
+            jaw.Add("mouth", MeshFactory.Box(1.75f, 0.05f, 0.8f), V(1.0f, 0.02f, 0), false);
+            foreach (int side in new[] { 1, -1 })
+                for (int k = 0; k < 5; k++) jaw.Add("white", tooth, V(0.6f + k * 0.32f, 0.14f, side * 0.36f), Vector3.zero, V(1.3f, 1.4f, 1.3f), false);
+            return 0.7f;
+        }
+
+        // Big cube head with glowing eyes (inspired by the Ender Dragon).
+        static float Block(PartBuilder up, PartBuilder jaw)
+        {
+            up.Add("skin", MeshFactory.Box(1.4f, 1.1f, 1.45f), V(0, 0.2f, 0));
+            up.Add("skin", MeshFactory.Box(1.3f, 0.5f, 1.0f), V(1.25f, 0.02f, 0));
+            foreach (int side in new[] { 1, -1 })
+            {
+                up.Add("skin", MeshFactory.Box(0.22f, 0.16f, 0.22f), V(1.6f, 0.33f, side * 0.28f));       // nostrils
+                up.Add("glow", MeshFactory.Box(0.42f, 0.06f, 0.34f), V(0.5f, 0.76f, side * 0.4f), false);  // eyes (top)
+                up.Add("glow", MeshFactory.Box(0.06f, 0.2f, 0.42f), V(0.71f, 0.42f, side * 0.4f), false);  // eyes (front)
+                up.Add("accent", MeshFactory.Box(0.24f, 0.42f, 0.24f), V(-0.35f, 0.95f, side * 0.32f));   // head spines
+                up.Add("accent", MeshFactory.Box(0.2f, 0.32f, 0.2f), V(0.15f, 0.9f, side * 0.32f));
+            }
+            jaw.Add("skin", MeshFactory.Box(1.55f, 0.3f, 0.95f), V(0.95f, -0.15f, 0));
+            jaw.Add("glow", MeshFactory.Box(1.35f, 0.05f, 0.8f), V(0.95f, 0.02f, 0), false); // glowing mouth
+            return 0.75f;
+        }
+
+        // Long eastern dragon head with antlers and whiskers (inspired by Shenron).
+        static float Eastern(PartBuilder up, PartBuilder jaw)
+        {
+            up.Add("skin", RB(1.4f, 0.9f, 1.3f, 0.3f), V(0, 0.15f, 0));
+            up.Add("skin", RB(1.75f, 0.5f, 0.95f, 0.2f), V(1.2f, 0.05f, 0));
+            up.Add("skin", RB(0.45f, 0.32f, 0.75f, 0.12f), V(2.0f, 0.15f, 0));
+            Eyes(up, 0.45f, 0.48f, 0.55f, 0.24f);
+            foreach (int side in new[] { 1, -1 })
+            {
+                up.Add("skin", RB(0.6f, 0.16f, 0.34f, 0.06f), V(0.45f, 0.72f, side * 0.45f), V(side * 0.35f, 0, -0.2f), Vector3.one);
+                // antlers: a main branch with two small branches
+                up.Add("accent", MeshFactory.Cone(0.1f, 1.6f, 6), V(-0.75f, 1.15f, side * 0.55f), V(side * 0.35f, 0, 0.85f), Vector3.one);
+                up.Add("accent", MeshFactory.Cone(0.06f, 0.7f, 5), V(-0.55f, 1.3f, side * 0.5f), V(side * 0.2f, 0, -0.1f), Vector3.one);
+                up.Add("accent", MeshFactory.Cone(0.06f, 0.6f, 5), V(-1.05f, 1.55f, side * 0.65f), V(side * 0.3f, 0, 0.1f), Vector3.one);
+                // long whiskers flowing back
+                up.Add("accent", MeshFactory.Cone(0.05f, 2.4f, 5), V(1.0f, 0, side * 0.95f), V(side * 0.55f, 0, Mathf.PI / 2 + 0.15f), Vector3.one, false);
+                up.Add("white", fang, V(1.75f, -0.3f, side * 0.3f), Down, Vector3.one, false);
+                up.Add("dark", sphere, V(2.15f, 0.25f, side * 0.2f), Vector3.zero, One(0.06f), false);
+                foreach (float x in new[] { 0.6f, 0.95f, 1.3f }) up.Add("white", tooth, V(x, -0.28f, side * 0.42f), Down, Vector3.one, false);
+            }
+            jaw.Add("belly", RB(1.9f, 0.28f, 0.9f, 0.12f), V(1.0f, -0.14f, 0));
+            jaw.Add("mouth", MeshFactory.Box(1.65f, 0.05f, 0.75f), V(1.0f, 0.02f, 0), false);
+            return 0.6f;
+        }
+
         static float Round(PartBuilder up, string eyeStyle)
         {
             up.Add("skin", sphere, V(0, 0.05f, 0), Vector3.zero, V(1.25f, 0.95f, 1.1f));
@@ -146,6 +209,20 @@ namespace SerpentRogue
                         b.Add("gold", MeshFactory.Cone(0.16f, 0.85f, 4), V(-0.3f, top + 0.5f, side * 0.48f), V(side * 0.2f, 0, 0.25f), V(1, 1, 0.3f), false);
                     }
                     break;
+                case "mane":
+                {
+                    // A wild mane of fur spikes sweeping back from the head.
+                    var rnd = new System.Random(42);
+                    System.Func<float> r = () => (float)rnd.NextDouble();
+                    for (int k = 0; k < 16; k++)
+                    {
+                        int side = k % 2 == 1 ? 1 : -1;
+                        b.Add("mane", MeshFactory.Cone(0.2f, 1.1f + r() * 0.6f, 5),
+                            V(-0.4f - r() * 0.8f, top - 0.1f + r() * 0.4f, side * r() * 0.75f),
+                            V(side * (0.3f + r() * 0.5f), 0, 1.25f + r() * 0.4f), Vector3.one);
+                    }
+                    break;
+                }
                 case "halo":
                     b.Add("halo", MeshFactory.Torus(0.55f, 0.07f), V(-0.1f, top + 0.65f, 0), V(Mathf.PI / 2, 0, 0), Vector3.one, false);
                     break;
@@ -173,7 +250,16 @@ namespace SerpentRogue
                 InitShapes();
                 var up = new PartBuilder();
                 var jaw = new PartBuilder();
-                float top = skin.head == "round" ? Round(up, skin.eyes) : Dragon(up, jaw, skin.head == "viper");
+                float top;
+                switch (skin.head)
+                {
+                    case "round": top = Round(up, skin.eyes); break;
+                    case "viper": top = Dragon(up, jaw, true); break;
+                    case "bone": top = Bone(up, jaw); break;
+                    case "block": top = Block(up, jaw); break;
+                    case "eastern": top = Eastern(up, jaw); break;
+                    default: top = Dragon(up, jaw, false); break;
+                }
                 Hat(up, skin.hat, top);
                 s = new Shapes { upper = up.Build(), jaw = jaw.Build() };
                 cache[skin.ShapeKey] = s;
@@ -195,6 +281,8 @@ namespace SerpentRogue
                 case "gold": return Toon.Make(Toon.Hex("#ffc83d"));
                 case "ivory": return Toon.Make(Toon.Hex("#f2e6c9"));
                 case "halo": return Toon.Make(Toon.Hex("#fff27a"), 1);
+                case "mane": return Toon.Make(skin.Mane);
+                case "glow": return Toon.Make(skin.Eye, 1);
                 case "black": return Toon.Make(Toon.Hex("#1b1b22"));
                 case "red": return Toon.Make(Toon.Hex("#c8283c"));
                 default: return Toon.Make(Color.magenta);
