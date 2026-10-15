@@ -109,8 +109,8 @@ function eastern(upper, jaw) {
     upper.add('accent', new THREE.ConeGeometry(0.1, 1.6, 6), { p: [-0.75, 1.15, side * 0.55], r: [side * 0.35, 0, 0.85] });
     upper.add('accent', new THREE.ConeGeometry(0.06, 0.7, 5), { p: [-0.55, 1.3, side * 0.5], r: [side * 0.2, 0, -0.1] });
     upper.add('accent', new THREE.ConeGeometry(0.06, 0.6, 5), { p: [-1.05, 1.55, side * 0.65], r: [side * 0.3, 0, 0.1] });
-    // long whiskers flowing back
-    upper.add('accent', new THREE.ConeGeometry(0.05, 2.4, 5), { p: [1.0, 0.0, side * 0.95], r: [side * 0.55, 0, Math.PI / 2 + 0.15] }, false);
+    // long whiskers: start at the sides of the nose and flow backward and outward
+    upper.add('accent', new THREE.ConeGeometry(0.06, 1.8, 5), { p: [0.88, 0.0, side * 0.99], r: [side * 1.654, 0, 0.926] }, false);
     upper.add('white', FANG, { p: [1.75, -0.3, side * 0.3], r: DOWN }, false);
     upper.add('dark', SPHERE, { p: [2.15, 0.25, side * 0.2], s: [0.06, 0.06, 0.06] }, false);
     for (const x of [0.6, 0.95, 1.3]) upper.add('white', TOOTH, { p: [x, -0.28, side * 0.42], r: DOWN }, false);

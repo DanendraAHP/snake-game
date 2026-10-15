@@ -155,8 +155,8 @@ namespace SerpentRogue
                 up.Add("accent", MeshFactory.Cone(0.1f, 1.6f, 6), V(-0.75f, 1.15f, side * 0.55f), V(side * 0.35f, 0, 0.85f), Vector3.one);
                 up.Add("accent", MeshFactory.Cone(0.06f, 0.7f, 5), V(-0.55f, 1.3f, side * 0.5f), V(side * 0.2f, 0, -0.1f), Vector3.one);
                 up.Add("accent", MeshFactory.Cone(0.06f, 0.6f, 5), V(-1.05f, 1.55f, side * 0.65f), V(side * 0.3f, 0, 0.1f), Vector3.one);
-                // long whiskers flowing back
-                up.Add("accent", MeshFactory.Cone(0.05f, 2.4f, 5), V(1.0f, 0, side * 0.95f), V(side * 0.55f, 0, Mathf.PI / 2 + 0.15f), Vector3.one, false);
+                // long whiskers: start at the sides of the nose and flow backward and outward
+                up.Add("accent", MeshFactory.Cone(0.06f, 1.8f, 5), V(0.88f, 0, side * 0.99f), V(side * 1.654f, 0, 0.926f), Vector3.one, false);
                 up.Add("white", fang, V(1.75f, -0.3f, side * 0.3f), Down, Vector3.one, false);
                 up.Add("dark", sphere, V(2.15f, 0.25f, side * 0.2f), Vector3.zero, One(0.06f), false);
                 foreach (float x in new[] { 0.6f, 0.95f, 1.3f }) up.Add("white", tooth, V(x, -0.28f, side * 0.42f), Down, Vector3.one, false);
