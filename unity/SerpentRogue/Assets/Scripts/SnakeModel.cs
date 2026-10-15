@@ -9,6 +9,7 @@ namespace SerpentRogue
     {
         public float x, z;
         public Snake owner;
+        public bool cut; // bitten off this frame
         public int idx;
     }
 

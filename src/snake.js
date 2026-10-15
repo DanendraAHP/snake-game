@@ -32,6 +32,7 @@ export class Snake {
     this.phantomCooldown = 0;
     this.freeBoost = 0;
     this.chomp = 0; // jaw animation timer
+    this.biteCooldown = 0;
     this.isBoss = false;
     this.noGrow = false; // bosses keep their size
 
@@ -89,6 +90,7 @@ export class Snake {
     this.phantomCooldown = Math.max(0, this.phantomCooldown - dt);
     this.freeBoost = Math.max(0, this.freeBoost - dt);
     this.chomp = Math.max(0, this.chomp - dt);
+    this.biteCooldown = Math.max(0, this.biteCooldown - dt);
     if (st.regen) this.mass += st.regen * dt;
     if (this.shields < st.shieldMax) {
       this.shieldTimer += dt;

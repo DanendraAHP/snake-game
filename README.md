@@ -5,8 +5,9 @@ An offline 3D snake game (like slither.io / Snake Clash) with **collectible drag
 
 - 🐉 Cartoon 3D snakes: dragon / viper / cute heads with chomping jaws and teeth, scale plates,
   spikes or flame fins, black outlines and toon shading.
-- 🐉 **Snake Clash rule**: every snake shows its **Lv** (size). When two snakes touch, the **higher Lv eats
-  the lower one from any side**. Red labels = bigger than you (run!), white = food.
+- 🐉 **Snake Clash rule**: every snake shows its **Lv** (size). A higher Lv snake **bites** a lower one: bite the
+  body to chop off the tail end (they lose that Lv, you gain it), bite the head to eat it whole.
+  Red labels = bigger than you (run!), white = food.
 - 🗺️ **6 maps / biomes**, each with a twist: Neon Arena, Jungle (+50% food), Desert (huge), Frozen Lake
   (slippery), Volcano (deadly lava pools), The End (more golden food). Pick one or "Random" on the menu.
 - 👹 **Bosses** every few minutes: a giant snake hunts you. Survive until it leaves, or outgrow it and eat it.

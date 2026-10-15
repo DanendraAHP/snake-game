@@ -30,6 +30,9 @@
       <canvas id="minimap" width="170" height="170"></canvas>
       <div id="hud-upgrades"></div>
       <div id="hud-boss" class="hud-boss"></div>
+      <div id="vignette"></div>
+      <div id="boss-count" class="boss-count"></div>
+      <div id="boss-arrow" class="boss-arrow"><span class="arrow">➤</span><span class="skull">👹</span></div>
       <div class="hud-hint">Mouse to steer · Hold click / Space to boost · Esc to pause · <span class="red">Red Lv</span> = bigger than you, run!</div>
     </div>
     <div id="toasts"></div>
@@ -98,7 +101,8 @@
           <li>🖱️ Your snake follows the <b>mouse</b>. Or use <b>A / D</b> (arrow keys) to turn.</li>
           <li>🚀 Hold <b>left click</b> or <b>Space</b> to boost. Boosting burns length.</li>
           <li>🍬 Eat glowing orbs to grow and earn <b>XP</b>. Golden orbs are worth 5x.</li>
-          <li>🐉 Every snake shows its <b>Lv</b> (its size). When two snakes touch, the <b>higher Lv eats the lower one</b>, from any side!</li>
+          <li>🐉 Every snake shows its <b>Lv</b> (its size). A <b>higher Lv</b> snake can bite a lower one: bite the <b>body</b> to chop off everything behind that point (they lose Lv, you gain it), bite the <b>head</b> to eat it whole!</li>
+          <li>💀 Running your head into a <b>bigger</b> snake gets your head eaten: game over.</li>
           <li>🔴 <b>Red</b> labels are bigger than you: run! <b>White</b> labels are smaller: hunt them.</li>
           <li>👹 Every few minutes a giant <b>BOSS</b> appears and hunts you. Survive until it leaves, or grow big enough to eat it.</li>
           <li>🗺️ Pick a <b>map</b> on the menu: each biome has its own twist (lava, ice, extra food...).</li>

@@ -100,7 +100,7 @@ export class Game {
     this.boss = null;
     this.bossCount = 0;
     this.bossKills = 0;
-    this.bossTimer = CONFIG.bossFirst;
+    this.bossTimer = this.bossTimerMax = CONFIG.bossFirst;
     this.bossWarned = false;
     this.runTime = 0;
     this.threat = 1;
@@ -198,7 +198,10 @@ export class Game {
       this.spawnBot();
     }
 
-    if (this.state === 'playing') this.updateBoss(dt);
+    if (this.state === 'playing') {
+      this.updateBoss(dt);
+      this.ui.updateBossFx(this);
+    }
 
     const goldenChance = 0.01 + this.map.goldenBonus + (p?.alive ? p.stats.goldenBonus : 0);
     this.food.compact();
@@ -287,26 +290,68 @@ export class Game {
     }
     if (s.phase > 0) return; // phased snakes pass through everything
 
-    // Touching another snake: the HIGHER Lv eats the lower one, from any side.
-    let other = null;
+    // Touching another snake: the HIGHER Lv bites the lower one.
+    // Find the touched piece closest to our head.
+    let touched = null;
+    let bestD = Infinity;
     this.segGrid.query(h.x, h.z, hr + this.maxSegRadius, (seg) => {
       const o = seg.owner;
-      if (o === s || !o.alive || o.phase > 0) return;
+      if (o === s || !o.alive || o.phase > 0 || seg.cut) return;
       const rr = hr + o.radius * 0.85;
-      if ((seg.x - h.x) ** 2 + (seg.z - h.z) ** 2 < rr * rr) {
-        other = o;
-        return false;
+      const d2 = (seg.x - h.x) ** 2 + (seg.z - h.z) ** 2;
+      if (d2 < rr * rr && d2 < bestD) {
+        bestD = d2;
+        touched = seg;
       }
     });
-    if (!other) return;
+    if (!touched) return;
+    const other = touched.owner;
     if (s.lv > other.lv) {
-      if (other.invuln <= 0) this.hit(other, s, true); // chomp!
+      if (other.invuln <= 0) this.bite(s, other, touched.idx); // chomp!
     } else if (s.lv < other.lv) {
+      // We ran our head into a bigger snake: our head gets eaten.
       if (!safe) this.hit(s, other, true);
     } else {
       // Same Lv: bounce off each other.
       s.angle = s.targetAngle = s.angle + Math.PI;
       s.invuln = Math.max(s.invuln, 0.4);
+    }
+  }
+
+  // `eater` bites `victim` at body piece number `idx`.
+  // Bitten in the head (or too small afterwards) = eaten whole.
+  // Bitten in the body = everything from there to the tail is bitten off.
+  bite(eater, victim, idx) {
+    if (eater.biteCooldown > 0) return;
+    eater.biteCooldown = CONFIG.biteCooldown;
+    const segs = victim.segments;
+    const n = segs.length;
+    const lost = Math.max(1, (victim.mass * (n - idx)) / n);
+    if (idx <= 2 || victim.mass - lost < CONFIG.minMass) {
+      this.hit(victim, eater, true);
+      return;
+    }
+    const cut = segs.splice(idx);
+    for (const seg of cut) seg.cut = true; // ignore them for the rest of this frame
+    victim.mass -= lost;
+
+    eater.grow(lost * (eater.isPlayer ? CONFIG.eatAbsorb : CONFIG.botEatAbsorb));
+    eater.chomp = 0.22;
+    // Some of the bitten part spills out as orbs.
+    const spill = lost * CONFIG.eatDrop;
+    const drops = Math.max(1, Math.ceil(cut.length / 3));
+    for (let i = 0; i < cut.length; i += 3) {
+      segmentColor(victim.skin, idx + i, n, tmpColor);
+      this.food.spawn(cut[i].x + (Math.random() - 0.5), cut[i].z + (Math.random() - 0.5), Math.max(0.5, spill / drops), { color: tmpColor });
+    }
+    this.particles.burst(cut[0].x, cut[0].z, victim.skin.colorA, 14, 7);
+
+    if (eater.isPlayer) {
+      this.gainXp(lost * 0.5);
+    }
+    if (victim.isPlayer) {
+      this.ui.toast(`💥 ${eater.name} bit you! -${Math.round(lost)} Lv`);
+      this.ui.flash();
     }
   }
 
@@ -462,7 +507,7 @@ export class Game {
       b.dispose();
       this.snakes = this.snakes.filter((s) => s !== b);
       this.boss = null;
-      this.bossTimer = CONFIG.bossInterval;
+      this.bossTimer = this.bossTimerMax = CONFIG.bossInterval;
       this.bossWarned = false;
       this.gainXp(25 + this.bossCount * 10);
       this.ui.toast(`🏃 You survived ${b.name}! Bonus XP!`);
@@ -496,7 +541,7 @@ export class Game {
 
   onBossDefeated(b, killer) {
     this.boss = null;
-    this.bossTimer = CONFIG.bossInterval;
+    this.bossTimer = this.bossTimerMax = CONFIG.bossInterval;
     this.bossWarned = false;
     if (killer?.isPlayer) {
       this.bossKills++;

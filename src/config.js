@@ -23,6 +23,9 @@ export const CONFIG = {
   eatAbsorb: 0.5, // the eater instantly gains this much of the victim's mass
   botEatAbsorb: 0.35, // bots absorb less, so they don't snowball as fast as you
   eatDrop: 0.3, // and this much is spilled as food around the victim
+  // Bites: touching a smaller snake's BODY bites off everything from there to the tail.
+  biteCooldown: 0.3, // seconds between two bites of the same snake
+  minMass: 6, // a snake bitten smaller than this dies
 
   // Bosses
   bossFirst: 90, // seconds until the first boss

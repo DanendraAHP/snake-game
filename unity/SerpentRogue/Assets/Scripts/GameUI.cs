@@ -213,7 +213,11 @@ namespace SerpentRogue
             GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1));
 
             if (screen != UIScreen.Shop) DrawLabels();
-            if (g.state == GameState.Playing && screen != UIScreen.GameOver) DrawHud();
+            if (g.state == GameState.Playing && screen != UIScreen.GameOver)
+            {
+                DrawBossFx();
+                DrawHud();
+            }
 
             switch (screen)
             {
@@ -311,22 +315,141 @@ namespace SerpentRogue
             }
             GUI.Label(new Rect(0, H - 26, W, 20), "Mouse to steer  ·  Hold click / Space to boost  ·  Esc to pause  ·  RED Lv = bigger than you, run!", Sized(small, 12, null, TextAnchor.MiddleCenter));
 
-            // Boss countdown / boss info
-            string bossText;
-            Color bossBg;
+            DrawBossPanel(p);
+        }
+
+        // ------------------------------------------------------------------ boss timer
+        // Big panel at the top: countdown to the next boss, or the boss that is out now.
+        void DrawBossPanel(Snake p)
+        {
+            var r = new Rect(W / 2 - 200, 10, 400, g.boss != null ? 84 : 96);
+            float shake = 0;
+            Color border, fillA, fillB;
+            float fill;
             if (g.boss != null)
             {
-                bossText = "BOSS  " + g.boss.name + "  Lv" + g.boss.Lv + "  ·  leaves in " + Time2(Mathf.Max(0, g.bossLeft));
-                bossBg = new Color(0.47f, 0.04f, 0.08f, 0.9f);
+                border = Toon.Hex("#ff3b3b");
+                fillA = Toon.Hex("#ff2020"); fillB = Toon.Hex("#ff8a1f");
+                fill = Mathf.Clamp01(g.bossLeft / Config.BossStay);
             }
             else
             {
                 float t = Mathf.Max(0, g.bossTimer);
-                bossText = "Boss in " + Time2(t);
-                bool warn = t <= Config.BossWarning && Mathf.Repeat(Time.unscaledTime, 0.6f) < 0.3f;
-                bossBg = warn ? new Color(0.6f, 0.1f, 0.1f, 0.9f) : new Color(0.06f, 0.09f, 0.18f, 0.85f);
+                fill = 1 - t / Mathf.Max(1, g.bossTimerMax);
+                bool warn = t <= Config.BossWarning, soon = t <= 30;
+                border = warn ? Toon.Hex("#ff3b3b") : soon ? Toon.Hex("#ff9f3d") : Toon.Hex("#4a5fb0");
+                fillA = warn ? Toon.Hex("#ff6a00") : soon ? Toon.Hex("#ffb23d") : Toon.Hex("#5d8bff");
+                fillB = warn ? Toon.Hex("#ff2020") : soon ? Toon.Hex("#ff6a00") : Toon.Hex("#b45dff");
+                if (warn) shake = Mathf.Sin(Time.unscaledTime * 50) * 3;
             }
-            GUI.Label(new Rect(W / 2 - 190, 14, 380, 36), bossText, Pill(bossBg, 15, Color.white));
+            r.x += shake;
+            GUI.Label(new Rect(r.x - 2, r.y - 2, r.width + 4, r.height + 4), "", Pill(border, 1, Color.white));
+            GUI.Label(r, "", Pill(g.boss != null ? new Color(0.45f, 0.04f, 0.08f, 0.96f) : new Color(0.1f, 0.13f, 0.28f, 0.96f), 1, Color.white));
+
+            var bar = new Rect(r.x + 16, 0, r.width - 32, 10);
+            if (g.boss != null)
+            {
+                Snake b = g.boss;
+                Outlined(new Rect(r.x, r.y + 4, r.width, 26), "BOSS  " + b.name + "  Lv" + b.Lv, Sized(center, 18), Color.white);
+                bar.y = r.y + 34;
+                bool canEat = p.Lv > b.Lv;
+                string sub = (canEat ? "YOU CAN EAT IT! GO!" : "Need Lv" + (b.Lv + 1) + " to eat it (you: Lv" + p.Lv + ")") + "  ·  leaves in " + Time2(Mathf.Max(0, g.bossLeft));
+                GUI.Label(new Rect(r.x, r.y + 50, r.width, 26), sub, Sized(center, 13, canEat ? Toon.Hex("#7dff9b") : Toon.Hex("#ffd0d0")));
+            }
+            else
+            {
+                SkinData next = Skins.BossSkins[g.bossCount % Skins.BossSkins.Count];
+                GUI.Label(new Rect(r.x, r.y + 4, r.width, 20), "NEXT BOSS:  " + next.label, Sized(center, 13, Toon.Hex("#c3cbf0")));
+                float t = Mathf.Max(0, g.bossTimer);
+                Color digits = t <= Config.BossWarning ? Toon.Hex("#ff5a5a") : t <= 30 ? Toon.Hex("#ffd25d") : Color.white;
+                Outlined(new Rect(r.x, r.y + 22, r.width, 46), Time2(t), Sized(center, t <= Config.BossWarning ? 44 : 38), digits);
+                bar.y = r.y + 74;
+            }
+            Fill(bar, new Color(0, 0, 0, 0.45f));
+            // two-color bar: a few slices blending from fillA to fillB
+            const int slices = 12;
+            float w = bar.width * Mathf.Clamp01(fill);
+            for (int i = 0; i < slices; i++)
+                Fill(new Rect(bar.x + w * i / slices, bar.y, w / slices + 0.5f, bar.height), Color.Lerp(fillA, fillB, i / (float)(slices - 1)));
+        }
+
+        Texture2D vignetteTex, arrowTex;
+        float flashTime = -10;
+
+        public void Flash() { flashTime = Time.unscaledTime; }
+
+        // 3-2-1 countdown, red screen glow, and an arrow pointing to an off-screen boss.
+        void DrawBossFx()
+        {
+            if (vignetteTex == null)
+            {
+                vignetteTex = new Texture2D(64, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+                for (int y = 0; y < 64; y++)
+                    for (int x = 0; x < 64; x++)
+                    {
+                        float dx = Mathf.Abs(x - 31.5f) / 31.5f, dy = Mathf.Abs(y - 31.5f) / 31.5f;
+                        float edge = Mathf.Clamp01((Mathf.Max(dx, dy) - 0.6f) / 0.4f);
+                        vignetteTex.SetPixel(x, y, new Color(1, 0.08f, 0.15f, edge * edge));
+                    }
+                vignetteTex.Apply();
+                arrowTex = new Texture2D(32, 32, TextureFormat.RGBA32, false);
+                for (int y = 0; y < 32; y++)
+                    for (int x = 0; x < 32; x++)
+                    {
+                        // triangle pointing right
+                        bool inside = x >= 4 && Mathf.Abs(y - 15.5f) <= (28 - x) * 0.55f;
+                        arrowTex.SetPixel(x, y, inside ? Color.white : Color.clear);
+                    }
+                arrowTex.Apply();
+            }
+            Snake p = g.player;
+
+            // Red glow: pulses during the warning, stronger the closer the boss is, flashes when bitten.
+            float glow = 0;
+            if (g.boss == null && g.bossTimer <= Config.BossWarning) glow = 0.25f + 0.2f * Mathf.Sin(Time.unscaledTime * 8);
+            if (g.boss != null && p != null && p.alive)
+            {
+                float d = Vector2.Distance(new Vector2(g.boss.Head.x, g.boss.Head.z), new Vector2(p.Head.x, p.Head.z));
+                glow = Mathf.Clamp(1 - (d - 12) / 45, 0, 0.7f);
+            }
+            glow = Mathf.Max(glow, 1 - (Time.unscaledTime - flashTime) / 0.4f);
+            if (glow > 0)
+            {
+                GUI.color = new Color(1, 1, 1, glow);
+                GUI.DrawTexture(new Rect(0, 0, W, H), vignetteTex);
+                GUI.color = Color.white;
+            }
+
+            // Giant 3-2-1, then "BOSS!".
+            string count = null;
+            float phase = 0;
+            if (g.boss == null && g.bossTimer <= 3 && g.bossTimer > 0) { count = Mathf.CeilToInt(g.bossTimer).ToString(); phase = 1 - Mathf.Repeat(g.bossTimer, 1); }
+            else if (g.boss != null && Config.BossStay - g.bossLeft < 1.2f) { count = "BOSS!"; phase = (Config.BossStay - g.bossLeft) / 1.2f; }
+            if (count != null)
+            {
+                float scale = Mathf.Lerp(2.0f, 0.9f, Mathf.Clamp01(phase * 4));
+                float alpha = phase < 0.8f ? 1 : 1 - (phase - 0.8f) / 0.2f;
+                GUI.color = new Color(1, 1, 1, alpha);
+                Outlined(new Rect(0, H * 0.38f - 100, W, 200), count, Sized(center, Mathf.RoundToInt(120 * scale)), Toon.Hex("#ff3b3b"));
+                GUI.color = Color.white;
+            }
+
+            // Arrow on the screen edge pointing to the boss when you can't see it.
+            if (g.boss == null) return;
+            Vector3 sp = g.cam.WorldToScreenPoint(new Vector3(g.boss.Head.x, 0, g.boss.Head.z));
+            float nx = sp.x / Screen.width * 2 - 1, ny = 1 - sp.y / Screen.height * 2;
+            if (sp.z < 0) { nx = -nx; ny = -ny; }
+            if (sp.z > 0 && Mathf.Abs(nx) < 0.95f && Mathf.Abs(ny) < 0.95f) return; // on screen
+            float k = 0.86f / Mathf.Max(Mathf.Abs(nx), Mathf.Abs(ny), 1e-4f);
+            var pos = new Vector2((nx * k * 0.5f + 0.5f) * W, (ny * k * 0.5f + 0.5f) * H);
+            float angle = Mathf.Atan2(ny, nx) * Mathf.Rad2Deg;
+            Matrix4x4 saved = GUI.matrix;
+            GUIUtility.RotateAroundPivot(angle, pos);
+            GUI.color = Toon.Hex("#ff3b3b");
+            GUI.DrawTexture(new Rect(pos.x + 4, pos.y - 16, 32, 32), arrowTex);
+            GUI.color = Color.white;
+            GUI.matrix = saved;
+            GUI.Label(new Rect(pos.x - 22, pos.y - 22, 44, 44), "BOSS", Pill(new Color(0.5f, 0.02f, 0.05f, 0.9f), 11, Color.white));
         }
 
         void LeaderRow(float lx, float y, int i, Snake s, bool me)
@@ -343,7 +466,7 @@ namespace SerpentRogue
             {
                 float age = Time.unscaledTime - toasts[i].Value;
                 GUI.color = new Color(1, 1, 1, Mathf.Clamp01((2.4f - age) / 0.5f));
-                GUI.Label(new Rect(W / 2 - 200, 100 + i * 46, 400, 38), toasts[i].Key, Sized(panel, 16, null, TextAnchor.MiddleCenter));
+                GUI.Label(new Rect(W / 2 - 200, 118 + i * 46, 400, 38), toasts[i].Key, Sized(panel, 16, null, TextAnchor.MiddleCenter));
             }
             GUI.color = Color.white;
         }
@@ -412,14 +535,15 @@ namespace SerpentRogue
                 "Your snake follows the MOUSE. Or use A / D (arrow keys) to turn.",
                 "Hold LEFT CLICK or SPACE to boost. Boosting burns length.",
                 "Eat glowing orbs to grow and earn XP. Golden orbs are worth 5x.",
-                "Every snake shows its Lv (size). When two snakes touch, the HIGHER Lv eats the lower one, from any side!",
+                "Every snake shows its Lv (size). A HIGHER Lv snake bites a lower one: bite the BODY to chop off its tail end (they lose Lv, you gain it), bite the HEAD to eat it whole!",
+                "Running your head into a BIGGER snake gets your head eaten: game over.",
                 "RED labels are bigger than you: run! WHITE labels are smaller: hunt them.",
                 "Every few minutes a giant BOSS hunts you. Survive until it leaves, or grow big enough to eat it.",
                 "Every level up, pick 1 of 3 power-ups (keys 1 / 2 / 3, R = reroll).",
                 "Bots get bigger and meaner over time. How long can you last?",
                 "Every run earns coins. Spend them on new skins in the Skins shop.",
             };
-            for (int i = 0; i < lines.Length; i++) GUI.Label(new Rect(r.x + 36, r.y + 76 + i * 50, r.width - 72, 46), "•  " + lines[i], Sized(label, 16));
+            for (int i = 0; i < lines.Length; i++) GUI.Label(new Rect(r.x + 36, r.y + 70 + i * 46, r.width - 72, 44), "•  " + lines[i], Sized(label, 15));
             if (GUI.Button(new Rect(W / 2 - 80, r.yMax - 66, 160, 44), "Back", btn)) Show(UIScreen.Menu);
         }
 

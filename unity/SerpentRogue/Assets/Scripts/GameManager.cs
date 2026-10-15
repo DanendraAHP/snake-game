@@ -31,7 +31,7 @@ namespace SerpentRogue
 
         // Bosses
         public Snake boss;
-        public float bossTimer, bossLeft;
+        public float bossTimer, bossLeft, bossTimerMax;
         public int bossCount, bossKills;
         bool bossWarned;
 
@@ -123,7 +123,7 @@ namespace SerpentRogue
             for (int i = 0; i < Config.FoodCount * map.foodMul; i++) food.SpawnRandom(0.01f);
             boss = null;
             bossCount = bossKills = 0;
-            bossTimer = Config.BossFirst;
+            bossTimer = bossTimerMax = Config.BossFirst;
             bossWarned = false;
             respawnQueue.Clear();
             runTime = 0;
@@ -331,24 +331,28 @@ namespace SerpentRogue
             }
             if (s.phase > 0) return; // phased snakes pass through everything
 
-            // Touching another snake: the HIGHER Lv eats the lower one, from any side.
-            Snake other = null;
+            // Touching another snake: the HIGHER Lv bites the lower one.
+            // Find the touched piece closest to our head.
+            Seg touched = null;
+            float bestD = float.MaxValue;
             segGrid.Query(hx, hz, hr + maxSegRadius, segBuffer);
             foreach (Seg seg in segBuffer)
             {
                 Snake o = seg.owner;
-                if (o == s || !o.alive || o.phase > 0) continue;
+                if (o == s || !o.alive || o.phase > 0 || seg.cut) continue;
                 float rr = hr + o.Radius * 0.85f;
-                float dx = seg.x - hx, dz = seg.z - hz;
-                if (dx * dx + dz * dz < rr * rr) { other = o; break; }
+                float dx = seg.x - hx, dz = seg.z - hz, d2 = dx * dx + dz * dz;
+                if (d2 < rr * rr && d2 < bestD) { bestD = d2; touched = seg; }
             }
-            if (other == null) return;
+            if (touched == null) return;
+            Snake other = touched.owner;
             if (s.Lv > other.Lv)
             {
-                if (other.invuln <= 0) Hit(other, s, true); // chomp!
+                if (other.invuln <= 0) Bite(s, other, touched.idx); // chomp!
             }
             else if (s.Lv < other.Lv)
             {
+                // We ran our head into a bigger snake: our head gets eaten.
                 if (!safe) Hit(s, other, true);
             }
             else
@@ -356,6 +360,44 @@ namespace SerpentRogue
                 // Same Lv: bounce off each other.
                 s.angle = s.targetAngle = s.angle + Mathf.PI;
                 s.invuln = Mathf.Max(s.invuln, 0.4f);
+            }
+        }
+
+        // `eater` bites `victim` at body piece number `idx`.
+        // Bitten in the head (or too small afterwards) = eaten whole.
+        // Bitten in the body = everything from there to the tail is bitten off.
+        void Bite(Snake eater, Snake victim, int idx)
+        {
+            if (eater.biteCooldown > 0) return;
+            eater.biteCooldown = Config.BiteCooldown;
+            var segs = victim.segments;
+            int n = segs.Count;
+            float lost = Mathf.Max(1, victim.mass * (n - idx) / n);
+            if (idx <= 2 || victim.mass - lost < Config.MinMass)
+            {
+                Hit(victim, eater, true);
+                return;
+            }
+            var cut = segs.GetRange(idx, n - idx);
+            segs.RemoveRange(idx, n - idx);
+            foreach (var seg in cut) seg.cut = true; // ignore them for the rest of this frame
+            victim.mass -= lost;
+
+            eater.Grow(lost * (eater.isPlayer ? Config.EatAbsorb : Config.BotEatAbsorb));
+            eater.chomp = 0.22f;
+            // Some of the bitten part spills out as orbs.
+            float spill = lost * Config.EatDrop;
+            int drops = Mathf.Max(1, Mathf.CeilToInt(cut.Count / 3f));
+            Color a = victim.skin.A, b = victim.skin.B;
+            for (int i = 0; i < cut.Count; i += 3)
+                food.Spawn(cut[i].x + Random.value - 0.5f, cut[i].z + Random.value - 0.5f, Mathf.Max(0.5f, spill / drops), Skins.SegmentColor(victim.skin, a, b, idx + i), false, false);
+            particles.Burst(cut[0].x, cut[0].z, a, 14, 7);
+
+            if (eater.isPlayer) GainXp(lost * 0.5f);
+            if (victim.isPlayer)
+            {
+                ui.Toast(eater.name + " bit you! -" + Mathf.RoundToInt(lost) + " Lv");
+                ui.Flash();
             }
         }
 
@@ -543,7 +585,7 @@ namespace SerpentRogue
                 b.Destroy();
                 snakes.Remove(b);
                 boss = null;
-                bossTimer = Config.BossInterval;
+                bossTimer = bossTimerMax = Config.BossInterval;
                 bossWarned = false;
                 GainXp(25 + bossCount * 10);
                 ui.Toast("You survived " + b.name + "! Bonus XP!");
@@ -578,7 +620,7 @@ namespace SerpentRogue
         void OnBossDefeated(Snake b, Snake killer)
         {
             boss = null;
-            bossTimer = Config.BossInterval;
+            bossTimer = bossTimerMax = Config.BossInterval;
             bossWarned = false;
             if (killer != null && killer.isPlayer)
             {

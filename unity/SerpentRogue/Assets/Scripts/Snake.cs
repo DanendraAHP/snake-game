@@ -20,7 +20,7 @@ namespace SerpentRogue
         public readonly Dictionary<string, int> upgrades = new Dictionary<string, int>();
         public int shields;
         float shieldTimer;
-        public float invuln, phase, phantomCooldown, freeBoost, chomp;
+        public float invuln, phase, phantomCooldown, freeBoost, chomp, biteCooldown;
 
         public bool wantBoost, boosting;
         float dropAccum;
@@ -79,6 +79,7 @@ namespace SerpentRogue
             phantomCooldown = Mathf.Max(0, phantomCooldown - dt);
             freeBoost = Mathf.Max(0, freeBoost - dt);
             chomp = Mathf.Max(0, chomp - dt);
+            biteCooldown = Mathf.Max(0, biteCooldown - dt);
             if (stats.regen > 0) mass += stats.regen * dt;
             if (shields < stats.shieldMax)
             {

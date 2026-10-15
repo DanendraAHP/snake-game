@@ -28,6 +28,9 @@ namespace SerpentRogue
         public const float EatAbsorb = 0.5f;      // the player instantly gains this much of the victim
         public const float BotEatAbsorb = 0.35f;  // bots absorb less, so they don't snowball as fast
         public const float EatDrop = 0.3f;        // spilled as food around the victim
+        // Bites: touching a smaller snake's BODY bites off everything from there to the tail.
+        public const float BiteCooldown = 0.3f;  // seconds between two bites
+        public const float MinMass = 6f;         // a snake bitten smaller than this dies
 
         // Bosses
         public const float BossFirst = 90;     // seconds until the first boss
