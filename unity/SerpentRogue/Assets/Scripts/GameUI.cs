@@ -165,6 +165,7 @@ namespace SerpentRogue
             if (!pills.TryGetValue(key, out st))
             {
                 st = Make(Rounded(bg), size, text);
+                st.padding = new RectOffset(4, 4, 2, 2);
                 pills[key] = st;
             }
             return st;
@@ -252,7 +253,7 @@ namespace SerpentRogue
             Snake p = g.player;
             if (p == null) return;
             GUI.Box(new Rect(14, 14, 320, 76), "", panel);
-            GUI.Label(new Rect(28, 24, 70, 28), "PWR " + p.level, Pill(Toon.Hex("#ffd25d"), 17, Toon.Hex("#3a2800")));
+            GUI.Label(new Rect(24, 24, 78, 28), "PWR " + p.level, Pill(Toon.Hex("#ffd25d"), 17, Toon.Hex("#3a2800")));
             Fill(new Rect(108, 33, 210, 12), Toon.Hex("#1a2147"));
             Fill(new Rect(108, 33, 210 * Mathf.Clamp01(p.xp / p.xpNext), 12), Toon.Hex("#ffb23d"));
             string extra = "";
@@ -265,9 +266,10 @@ namespace SerpentRogue
             var sorted = new List<Snake>(g.snakes);
             sorted.Sort((a, b) => b.mass.CompareTo(a.mass));
             float lx = W - 234;
-            GUI.Box(new Rect(lx, 14, 220, 222), "", panel);
-            GUI.Label(new Rect(lx + 14, 20, 200, 22), "LEADERBOARD", small);
             int rank = sorted.IndexOf(p);
+            int rows = Mathf.Min(8, sorted.Count) + (rank >= 8 ? 1 : 0);
+            GUI.Box(new Rect(lx, 14, 220, 40 + rows * 22), "", panel);
+            GUI.Label(new Rect(lx + 14, 20, 200, 22), "LEADERBOARD", small);
             for (int i = 0; i < Mathf.Min(8, sorted.Count); i++) LeaderRow(lx, 44 + i * 22, i, sorted[i], sorted[i] == p);
             if (rank >= 8) LeaderRow(lx, 44 + 8 * 22, rank, p, true);
 
@@ -297,10 +299,14 @@ namespace SerpentRogue
             foreach (var kv in p.upgrades)
             {
                 UpgradeDef u = Upgrades.ById(kv.Key);
-                string t = u.icon + (kv.Value > 1 ? " x" + kv.Value : "");
                 var chip = Pill(Upgrades.RarityColor(u.rarity) * 0.55f + new Color(0, 0, 0, 0.45f), 13, Color.white);
-                float w = 26 + t.Length * 8;
-                GUI.Label(new Rect(cx, H - 44, w, 30), new GUIContent(t, u.name), chip);
+                Texture2D icon = Icons.Get(u.id);
+                string count = kv.Value > 1 ? "x" + kv.Value : "";
+                float w = 34 + count.Length * 8;
+                GUI.Label(new Rect(cx, H - 48, w, 34), new GUIContent("", u.name), chip);
+                if (icon != null) GUI.DrawTexture(new Rect(cx + 5, H - 43, 24, 24), icon);
+                else GUI.Label(new Rect(cx, H - 48, 34, 34), u.icon, Sized(center, 11));
+                if (count.Length > 0) GUI.Label(new Rect(cx + 29, H - 48, w - 29, 34), count, Sized(label, 12));
                 cx += w + 6;
             }
             GUI.Label(new Rect(0, H - 26, W, 20), "Mouse to steer  ·  Hold click / Space to boost  ·  Esc to pause  ·  RED Lv = bigger than you, run!", Sized(small, 12, null, TextAnchor.MiddleCenter));
@@ -433,7 +439,10 @@ namespace SerpentRogue
                 GUI.Label(r, "", Pill(rc, 1, Color.white));
                 var inner = new Rect(r.x + 3, r.y + 3, r.width - 6, r.height - 6);
                 if (GUI.Button(inner, "", Pill(Toon.Hex("#141b38"), 1, Color.white))) { g.PickUpgrade(u); return; }
-                GUI.Label(new Rect(inner.x, inner.y + 18, inner.width, 60), u.icon, Pill(rc, 22, Toon.Hex("#0a0a12")));
+                GUI.Label(new Rect(inner.x + 10, inner.y + 10, inner.width - 20, 70), "", Pill(rc * 0.45f + new Color(0, 0, 0, 0.55f), 1, Color.white));
+                Texture2D icon = Icons.Get(u.id);
+                if (icon != null) GUI.DrawTexture(new Rect(inner.center.x - 30, inner.y + 15, 60, 60), icon);
+                else GUI.Label(new Rect(inner.x, inner.y + 18, inner.width, 60), u.icon, Sized(center, 22));
                 GUI.Label(new Rect(inner.x, inner.y + 86, inner.width, 20), u.rarity.ToUpper(), Sized(center, 12, rc));
                 GUI.Label(new Rect(inner.x + 10, inner.y + 106, inner.width - 20, 30), u.name, Sized(center, 19));
                 GUI.Label(new Rect(inner.x + 14, inner.y + 140, inner.width - 28, 80), u.desc, Sized(center, 14, Toon.Hex("#9aa5d6"), TextAnchor.UpperCenter));
@@ -469,9 +478,24 @@ namespace SerpentRogue
             StatCell(new Rect(r.x + 290, r.y + 80, 240, 84), "Max length", s.length.ToString(), s.newBestLength);
             StatCell(new Rect(r.x + 30, r.y + 176, 240, 84), "Kills", s.kills.ToString(), s.newBestKills);
             StatCell(new Rect(r.x + 290, r.y + 176, 240, 84), "Survived", Time2(s.time), s.newBestTime);
-            string ups = "";
-            foreach (var kv in s.upgrades) ups += Upgrades.ById(kv.Key).name + (kv.Value > 1 ? " x" + kv.Value : "") + "    ";
-            GUI.Label(new Rect(r.x + 30, r.y + 268, r.width - 60, 50), ups.Length > 0 ? ups : "No power-ups this run.", Sized(center, 13, Toon.Hex("#9aa5d6")));
+            // The power-ups you collected, as icons (hover one to see its name).
+            if (s.upgrades.Count == 0)
+                GUI.Label(new Rect(r.x + 30, r.y + 268, r.width - 60, 40), "No power-ups this run.", Sized(center, 13, Toon.Hex("#9aa5d6")));
+            else
+            {
+                float size = 36, gap = 6, total = s.upgrades.Count * (size + gap) - gap;
+                float ix = r.center.x - Mathf.Min(total, r.width - 40) / 2;
+                foreach (var kv in s.upgrades)
+                {
+                    UpgradeDef u = Upgrades.ById(kv.Key);
+                    var cell = new Rect(ix, r.y + 270, size, size);
+                    GUI.Label(cell, new GUIContent("", u.name + (kv.Value > 1 ? " x" + kv.Value : "")), Pill(Upgrades.RarityColor(u.rarity) * 0.5f + new Color(0, 0, 0, 0.5f), 1, Color.white));
+                    Texture2D icon = Icons.Get(u.id);
+                    if (icon != null) GUI.DrawTexture(new Rect(ix + 4, r.y + 274, size - 8, size - 8), icon);
+                    if (kv.Value > 1) GUI.Label(new Rect(ix, r.y + 270 + size - 14, size, 14), "x" + kv.Value, Sized(center, 10));
+                    ix += size + gap;
+                }
+            }
             GUI.Label(new Rect(r.x, r.y + 318, r.width, 22), "Map: " + s.mapName + "   ·   Bosses eaten: " + s.bossKills, Sized(center, 13, Toon.Hex("#9aa5d6")));
             GUI.Label(new Rect(r.x, r.y + 340, r.width, 30), "+" + s.coins + " coins for the skin shop", Sized(center, 20, Toon.Hex("#ffd25d")));
             if (GUI.Button(new Rect(W / 2 - 130, r.y + 392, 260, 52), "Play again", bigBtn)) g.StartRun();
