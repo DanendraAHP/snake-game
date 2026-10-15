@@ -335,7 +335,7 @@ namespace SerpentRogue
             }
 
             if (GUI.Button(new Rect(cx - 130, 364, 260, 54), "PLAY", bigBtn)) g.StartRun();
-            if (GUI.Button(new Rect(cx - 130, 428, 260, 46), "Skins   (" + g.profile.coins + " coins)", btn))
+            if (GUI.Button(new Rect(cx - 130, 428, 260, 46), "Skins   (" + (Config.UnlimitedCoins ? "unlimited" : g.profile.coins.ToString()) + " coins)", btn))
             {
                 selected = g.profile.equipped;
                 SkinData sk = SelectedSkin();
@@ -459,7 +459,7 @@ namespace SerpentRogue
             Profile pr = g.profile;
             if (GUI.Button(new Rect(16, 14, 110, 42), "< Back", btn)) Show(UIScreen.Menu);
             Outlined(new Rect(140, 12, 500, 46), "COLLECT SKINS", Sized(label, 32), Color.white);
-            GUI.Label(new Rect(W - 200, 14, 184, 42), pr.coins + " coins", Pill(new Color(0, 0, 0, 0.35f), 18, Toon.Hex("#ffd25d")));
+            GUI.Label(new Rect(W - 200, 14, 184, 42), (Config.UnlimitedCoins ? "Unlimited" : pr.coins.ToString()) + " coins", Pill(new Color(0, 0, 0, 0.35f), 18, Toon.Hex("#ffd25d")));
 
             // Left: 3D preview
             float leftW = W * 0.52f;
@@ -484,10 +484,10 @@ namespace SerpentRogue
             }
             else
             {
-                GUI.enabled = pr.coins >= sel.price;
+                GUI.enabled = Config.UnlimitedCoins || pr.coins >= sel.price;
                 if (GUI.Button(actionRect, "Buy  " + sel.price + " coins", bigBtn))
                 {
-                    pr.coins -= sel.price;
+                    if (!Config.UnlimitedCoins) pr.coins -= sel.price;
                     pr.owned.Add(selected);
                     pr.equipped = selected;
                     pr.Save();

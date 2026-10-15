@@ -26,6 +26,9 @@ namespace SerpentRogue
         public const int StartRerolls = 2;
         public const int StartCoins = 300;
 
+        // Testing switch: true = infinite coins, every shop skin is free.
+        public const bool UnlimitedCoins = true;
+
         // XP needed to go from `level` to `level + 1`.
         public static int XpForLevel(int level)
         {

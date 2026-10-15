@@ -20,6 +20,10 @@ export const CONFIG = {
   deathDropRatio: 0.8, // how much of a dead snake's mass turns into food
 
   startRerolls: 2,
+
+  // Testing switch: true = infinite coins, every shop skin is free.
+  // Set to false to go back to earning coins by playing.
+  unlimitedCoins: true,
 };
 
 // XP needed to go from `level` to `level + 1`.

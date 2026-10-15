@@ -1,3 +1,4 @@
+import { CONFIG } from './config.js';
 import { Game } from './game.js';
 import { Input } from './input.js';
 import { UI } from './ui.js';
@@ -16,7 +17,7 @@ game.startAttract(); // bots play in the background of the menu
 
 function save() {
   saveProfile(profile);
-  for (const el of document.querySelectorAll('.coin-count')) el.textContent = profile.coins;
+  for (const el of document.querySelectorAll('.coin-count')) el.textContent = CONFIG.unlimitedCoins ? '∞' : profile.coins;
 }
 save();
 
@@ -25,6 +26,10 @@ game.onGameOver = (stats) => {
   profile.coins += stats.coins;
   save();
 };
+
+function canAfford(price) {
+  return CONFIG.unlimitedCoins || profile.coins >= price;
+}
 
 function play() {
   game.startRun(equippedSkin(profile), profile.name);
@@ -120,15 +125,15 @@ function select(id) {
     btn.disabled = false;
   } else {
     btn.textContent = `Buy 🪙 ${skin.price}`;
-    btn.disabled = profile.coins < skin.price;
+    btn.disabled = !canAfford(skin.price);
   }
 }
 
 $('btn-equip').onclick = () => {
   const skin = skinById(selected);
   if (selected !== 'custom' && !profile.owned.includes(selected)) {
-    if (profile.coins < skin.price) return;
-    profile.coins -= skin.price;
+    if (!canAfford(skin.price)) return;
+    if (!CONFIG.unlimitedCoins) profile.coins -= skin.price;
     profile.owned.push(selected);
     ui.toast(`🎉 Unlocked ${skin.label}!`);
   }
