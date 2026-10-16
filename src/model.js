@@ -130,7 +130,7 @@ export class SnakeModel {
 
     const head = buildHead(skin);
     this.head = head.group;
-    this.jaw = head.jaw;
+    this.hinge = head.hinge;
     this.group.add(this.head);
 
     this.yOffset = skin.body === 'smooth' ? 1 : 0.8;
@@ -217,7 +217,7 @@ export class SnakeModel {
     this.head.scale.setScalar(headScale);
     // Jaw: chomp when eating, open wide while boosting.
     const open = fx.jaw ?? 0.05;
-    this.jaw.rotation.z = -open * 0.75;
+    this.hinge.rotation.z = open * 0.38; // the upper head lifts up
 
     // Effects: brighter while boosting, see-through while phased, blink while invulnerable.
     this.bodyMat.emissiveIntensity = fx.boosting ? 0.45 + Math.sin(time * 20) * 0.15 : this.glowBase;

@@ -230,18 +230,30 @@ function meshes(group, geos, mats) {
   }
 }
 
-// Returns { group, jaw }. Rotate jaw.rotation.z negative to open the mouth.
+// Returns { group, hinge }. The lower jaw stays still and the UPPER head
+// (skull, snout, eyes, hat) swings up on a hinge at the back of the mouth,
+// so opening the mouth never pushes anything down through the floor.
+// Rotate hinge.rotation.z positive to open the mouth.
 export function buildHead(skin) {
   const geos = headGeometry(skin);
   const mats = materialsFor(skin);
   const group = new THREE.Group();
-  meshes(group, geos.upper, mats);
+
+  const hinge = new THREE.Group();
+  hinge.position.set(-1.5, -0.15, 0); // hinge behind the skull (and mane), so the whole top lifts
+  const upper = new THREE.Group();
+  upper.position.set(1.5, 0.15, 0); // undo the offset so the parts stay in place
+  meshes(upper, geos.upper, mats);
+  hinge.add(upper);
+  group.add(hinge);
+
   const jaw = new THREE.Group();
   jaw.position.set(-0.2, -0.15, 0);
   meshes(jaw, geos.jaw, mats);
   group.add(jaw);
+
   group.userData.materials = mats;
-  return { group, jaw };
+  return { group, hinge };
 }
 
 export function disposeHead(group) {

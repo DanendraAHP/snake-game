@@ -3,11 +3,14 @@ using UnityEngine;
 
 namespace SerpentRogue
 {
-    // A built head: root object + the jaw (rotate jaw on Z, negative = open).
+    // A built head: root object + the hinge. The lower jaw stays still and the
+    // UPPER head (skull, snout, eyes, hat) swings up on the hinge, so opening
+    // the mouth never pushes anything down through the floor.
+    // Rotate the hinge on Z, positive = open.
     public class Head
     {
         public GameObject root;
-        public Transform jaw;
+        public Transform hinge;
         public readonly List<Material> materials = new List<Material>();
 
         public void Destroy()
@@ -313,12 +316,20 @@ namespace SerpentRogue
         {
             Shapes shapes = GetShapes(skin);
             var head = new Head { root = new GameObject("Head") };
-            AddMeshes(head.root.transform, shapes.upper, skin, head, 0.05f);
+
+            var hinge = new GameObject("Hinge").transform;
+            hinge.SetParent(head.root.transform, false);
+            hinge.localPosition = new Vector3(-1.5f, -0.15f, 0); // hinge behind the skull (and mane), so the whole top lifts
+            var upper = new GameObject("Upper").transform;
+            upper.SetParent(hinge, false);
+            upper.localPosition = new Vector3(1.5f, 0.15f, 0); // undo the offset so the parts stay in place
+            AddMeshes(upper, shapes.upper, skin, head, 0.05f);
+            head.hinge = hinge;
+
             var jaw = new GameObject("Jaw").transform;
             jaw.SetParent(head.root.transform, false);
             jaw.localPosition = new Vector3(-0.2f, -0.15f, 0);
             AddMeshes(jaw, shapes.jaw, skin, head, 0.04f);
-            head.jaw = jaw;
             return head;
         }
     }

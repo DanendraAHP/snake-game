@@ -227,7 +227,7 @@ namespace SerpentRogue
             head.root.transform.position = HeadPosition;
             head.root.transform.rotation = Quaternion.Euler(0, -angle * Mathf.Rad2Deg, 0);
             head.root.transform.localScale = Vector3.one * radius * 1.4f; // big cartoon heads
-            head.jaw.localRotation = Quaternion.Euler(0, 0, -fx.jaw * 0.75f * Mathf.Rad2Deg);
+            head.hinge.localRotation = Quaternion.Euler(0, 0, fx.jaw * 0.38f * Mathf.Rad2Deg); // the upper head lifts up
         }
     }
 }
